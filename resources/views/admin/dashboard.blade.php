@@ -1,12 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
-</head>
-<body>
-    <h1>Selamat admin datang di dashboard </h1>
-</body>
-</html>
+@extends('layouts.admin')
+
+@section('content')
+    <h1 class="text-2xl font-semibold text-gray-800 mb-6">Dashboard</h1>
+    <!-- konten Anda -->
+@endsection
