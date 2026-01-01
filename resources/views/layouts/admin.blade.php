@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Laravel') }} - Admin</title>
+    <title>@yield('title', 'Admin Panel')</title>
     <link rel="icon" href="{{ asset('images/headptba.png') }}" type="image/png">
 
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -13,7 +13,9 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
+    @livewireStyles
     <style>
+        [x-cloak] { display: none !important; }
         /* Perbaikan Transisi Sidebar */
         .sidebar-transition { 
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
@@ -103,5 +105,8 @@
             });
         }
     </script>
+
+    @livewireScripts
+    
 </body>
 </html>

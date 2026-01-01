@@ -50,29 +50,65 @@
             </a>
 
             <div class="space-y-1">
-                <button id="dropdownToggle" class="w-full flex items-center justify-between space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                {{-- 
+                    LOGIKA PERUBAHAN: 
+                    Kita gunakan request()->routeIs('admin.master.*') 
+                    agar tombol ini aktif untuk SEMUA sub-menu di bawahnya.
+                --}}
+                <button id="dropdownToggle" 
+                    class="w-full flex items-center justify-between space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group 
+                    {{ request()->routeIs('admin.master.*') ? 'bg-gray-100 text-indigo-600 font-semibold' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}">
+                    
                     <div class="flex items-center space-x-3">
-                        <svg class="w-5 h-5 text-gray-400 group-hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {{-- Icon Data Master juga berubah warna jika aktif --}}
+                        <svg class="w-5 h-5 {{ request()->routeIs('admin.master.*') ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500' }}" 
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
                         </svg>
                         <span class="font-medium">Data Master</span>
                     </div>
-                    <svg id="dropdownIcon" class="w-4 h-4 transition-transform duration-200 {{ request()->routeIs('admin.locations.*') ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    
+                    {{-- Panah rotasi otomatis jika salah satu sub-menu aktif --}}
+                    <svg id="dropdownIcon" class="w-4 h-4 transition-transform duration-200 {{ request()->routeIs('admin.master.*') ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                     </svg>
                 </button>
                 
-                <div id="dropdownMenu" class="pl-4 space-y-1 overflow-hidden transition-all duration-200 ease-in-out {{ request()->routeIs('admin.locations.*') ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0' }}">
-                    <a href="{{ route('admin.locations.index') }}"
-                    class="flex items-center space-x-3 px-4 py-2 rounded-lg text-sm
-                            {{ request()->routeIs('admin.locations.*') ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}">
+                {{-- 
+                   Container Dropdown:
+                   Otomatis terbuka (max-h-96) jika route diawali 'admin.master.*'
+                --}}
+                <div id="dropdownMenu" class="pl-4 space-y-1 overflow-hidden transition-all duration-200 ease-in-out {{ request()->routeIs('admin.master.*') ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0' }}">
+                    
+                    <a href="{{ route('admin.master.location') }}" class="flex items-center space-x-3 px-4 py-2 rounded-lg text-sm
+                            {{ request()->routeIs('admin.master.location*') ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}">
                         <span>Lokasi</span>
                     </a>
-                    <a href="#" class="flex items-center space-x-3 px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50"><span>Kategori</span></a>
-                    <a href="#" class="flex items-center space-x-3 px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50"><span>Status</span></a>
-                    <a href="#" class="flex items-center space-x-3 px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50"><span>Model Perangkat</span></a>
-                    <a href="#" class="flex items-center space-x-3 px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50"><span>Pabrikan</span></a>
-                    <a href="#" class="flex items-center space-x-3 px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50"><span>Klien</span></a>
+
+                    <a href="{{ route('admin.master.category') }}" class="flex items-center space-x-3 px-4 py-2 rounded-lg text-sm
+                            {{ request()->routeIs('admin.master.category*') ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}">
+                        <span>Kategori</span>
+                    </a>
+
+                    <a href="{{ route('admin.master.asset-status') }}" class="flex items-center space-x-3 px-4 py-2 rounded-lg text-sm
+                            {{ request()->routeIs('admin.master.asset-status*') ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}">
+                        <span>Status Aset</span>
+                    </a>
+
+                    <a href="{{ route('admin.master.manufacturer') }}" class="flex items-center space-x-3 px-4 py-2 rounded-lg text-sm
+                            {{ request()->routeIs('admin.master.manufacturer*') ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}">
+                        <span>Pabrikan</span>
+                    </a>
+
+                    <a href="{{ route('admin.master.asset-model') }}" class="flex items-center space-x-3 px-4 py-2 rounded-lg text-sm
+                            {{ request()->routeIs('admin.master.asset-model*') ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}">
+                        <span>Model Perangkat</span>
+                    </a>
+                    
+                    <a href="{{ route('admin.master.employee') }}" class="flex items-center space-x-3 px-4 py-2 rounded-lg text-sm
+                        {{ request()->routeIs('admin.master.employee*') ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}">
+                        <span>Karyawan</span>
+                    </a>
                 </div>
             </div>
 
@@ -89,35 +125,5 @@
                 <span class="font-medium">Laporan</span>
             </a>
         </nav>
-
-        <div class="my-6 border-t border-gray-200"></div>
-        
-        <div class="mt-auto">
-            <div class="bg-gray-50 rounded-xl p-4 mb-4">
-                <div class="flex items-center space-x-3 mb-3">
-                    <div class="w-10 h-10 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold">
-                        {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                    </div>
-                    <div class="flex-1">
-                        <p class="text-gray-800 font-medium text-sm leading-tight">{{ Auth::user()->name }}</p>
-                        <p class="text-gray-500 text-xs">Administrator</p>
-                    </div>
-                </div>
-                
-                <div class="space-y-2">
-                    <a href="{{ route('profile.edit') }}" class="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                        <span>Profil</span>
-                    </a>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                            <span>Keluar</span>
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
     </div>
 </aside>

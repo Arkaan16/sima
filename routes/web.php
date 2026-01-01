@@ -3,10 +3,14 @@
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Admin\LocationController;
+use App\Livewire\Admin\Master\CategoryManager;
+use App\Livewire\Admin\Master\EmployeeManager;
+use App\Livewire\Admin\Master\LocationManager;
+use App\Livewire\Admin\Master\AssetModelManager;
+use App\Livewire\Admin\Master\AssetStatusManager;
+use App\Livewire\Admin\Master\ManufacturerManager;
 
 Route::get('/', function () {
-    // Menggunakan Facade Auth lebih dikenali oleh VS Code
     if (Auth::check()) {
         return Auth::user()->role === 'admin' 
             ? redirect()->route('admin.dashboard') 
@@ -16,9 +20,6 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-// Route::get('/dashboard', function () {
-//     return view('dashboard');
-// })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -32,7 +33,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         return view('admin.dashboard');
     })->name('dashboard');
 
-    Route::resource('locations', LocationController::class);
+    Route::get('/master/category', CategoryManager::class)->name('master.category');
+    Route::get('/master/location', LocationManager::class)->name('master.location');
+    Route::get('/master/asset-status', AssetStatusManager::class)->name('master.asset-status');
+    Route::get('/master/manufacturer', ManufacturerManager::class)->name('master.manufacturer');
+    Route::get('/master/asset-model', AssetModelManager::class)->name('master.asset-model');
+    Route::get('/master/employee', EmployeeManager::class)->name('master.employee');
 });
 
 // Employee Area

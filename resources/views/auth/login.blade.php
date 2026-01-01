@@ -64,7 +64,7 @@
                 type="submit"
                 class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
-                {{ __('Log in') }}
+                {{ __('Masuk') }}
             </button>
         </form>
 
