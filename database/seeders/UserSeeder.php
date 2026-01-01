@@ -22,6 +22,14 @@ class UserSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
 
+        User::create([
+            'name' => 'Arkaan',
+            'email' => 'arkaan@ptba.co.id',
+            'password' => 'password', // Otomatis ter-hash oleh model
+            'role' => 'admin',
+            'email_verified_at' => now(),
+        ]);
+
         // Membuat Akun Employee
         User::create([
             'name' => 'Employee SIMA',

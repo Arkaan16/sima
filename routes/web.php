@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
+use App\Livewire\Admin\Users\UserManager;
 use App\Livewire\Admin\Master\CategoryManager;
 use App\Livewire\Admin\Master\EmployeeManager;
 use App\Livewire\Admin\Master\LocationManager;
@@ -39,6 +40,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/master/manufacturer', ManufacturerManager::class)->name('master.manufacturer');
     Route::get('/master/asset-model', AssetModelManager::class)->name('master.asset-model');
     Route::get('/master/employee', EmployeeManager::class)->name('master.employee');
+    Route::get('/users', UserManager::class)->name('users');
 });
 
 // Employee Area
