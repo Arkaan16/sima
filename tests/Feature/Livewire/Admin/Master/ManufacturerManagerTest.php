@@ -20,7 +20,7 @@ describe('Manufacturer Manager Component', function () {
     test('halaman bisa diakses dan judul muncul', function () {
         Livewire::test(ManufacturerManager::class)
             ->assertStatus(200)
-            ->assertSee('Manajemen Pabrikan');
+            ->assertSee('Kelola Pabrikan');
     });
 
     // --- 2. TEST CREATE (TANPA GAMBAR) ---

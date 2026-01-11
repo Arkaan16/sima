@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('employees', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->string('name')->index();
             // Email wajib unik agar tidak ada data ganda untuk orang yang sama
             $table->string('email')->unique(); 
             $table->timestamps();

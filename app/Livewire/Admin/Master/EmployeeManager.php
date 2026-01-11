@@ -13,10 +13,6 @@ use Illuminate\Validation\Rule;
 /**
  * Class EmployeeManager
  * Komponen Livewire untuk mengelola Data Master Karyawan.
- * * Fitur Utama:
- * 1. CRUD Karyawan.
- * 2. Validasi Unik (Mencegah duplikasi Nama & Email).
- * 3. Pencarian Real-time.
  */
 #[Layout('components.layouts.admin')]
 #[Title('Kelola Karyawan')]
@@ -28,26 +24,20 @@ class EmployeeManager extends Component
     // PROPERTIES
     // ==========================================
 
-    /** @var int|null ID Karyawan yang sedang diedit/dihapus */
     public $employeeId;
-
-    /** @var string Nama Karyawan */
     public $name;
-
-    /** @var string Email Karyawan */
     public $email;
 
-    // --- Pencarian ---
     #[Url(except: '')]
     public $search = '';
 
-    // --- UI States ---
+    // UI States
     public $showFormModal = false;
     public $showDeleteModal = false;
     public $isEditMode = false;
 
     // ==========================================
-    // VALIDASI (ANTI DUPLIKASI)
+    // VALIDASI
     // ==========================================
 
     protected function rules()
@@ -57,14 +47,14 @@ class EmployeeManager extends Component
                 'required', 
                 'string', 
                 'max:255',
-                // Cek unik di tabel employees kolom name, abaikan ID ini jika sedang Edit
-                Rule::unique('employees', 'name')->ignore($this->employeeId),
+                // PERUBAHAN: Validasi unique dihapus disini.
+                // Nama boleh sama, yang penting email beda.
             ],
             'email' => [
                 'required', 
                 'email', 
                 'max:255',
-                // Cek unik di tabel employees kolom email, abaikan ID ini jika sedang Edit
+                // Email WAJIB unik. Abaikan ID saat mode Edit.
                 Rule::unique('employees', 'email')->ignore($this->employeeId),
             ],
         ];
@@ -72,10 +62,9 @@ class EmployeeManager extends Component
 
     protected $messages = [
         'name.required' => 'Nama karyawan wajib diisi.',
-        'name.unique' => 'Nama karyawan ini sudah terdaftar.', // Pesan error duplikasi
         'email.required' => 'Email wajib diisi.',
         'email.email' => 'Format email tidak valid.',
-        'email.unique' => 'Email ini sudah digunakan oleh karyawan lain.', // Pesan error duplikasi
+        'email.unique' => 'Email ini sudah digunakan oleh karyawan lain.',
     ];
 
     // ==========================================
@@ -142,7 +131,7 @@ class EmployeeManager extends Component
 
     public function store()
     {
-        // Jalankan validasi (Rules di atas akan mengecek duplikasi)
+        // Validasi dijalankan sesuai rules() di atas
         $this->validate();
 
         $data = [
@@ -173,7 +162,11 @@ class EmployeeManager extends Component
         if ($this->employeeId) {
             try {
                 $employee = Employee::findOrFail($this->employeeId);
+                
+                // Karena di Model Employee sudah pakai 'use SoftDeletes',
+                // perintah delete() ini otomatis melakukan Soft Delete (tidak hilang permanen).
                 $employee->delete();
+                
                 session()->flash('message', 'Data karyawan berhasil dihapus.');
             } catch (\Exception $e) {
                 session()->flash('error', 'Gagal menghapus data. Terjadi kesalahan sistem.');

@@ -27,7 +27,7 @@ describe('User Manager Component', function () {
         
         Livewire::test(UserManager::class)
             ->assertStatus(200)
-            ->assertSee('Manajemen Pengguna');
+            ->assertSee('Kelola Pengguna');
     });
 
     // TEST TAMBAHAN: Security Authorization

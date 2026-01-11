@@ -1,12 +1,18 @@
 <?php
 
+use App\Livewire\Admin\Scan\Scan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProfileController;
+use App\Livewire\Admin\Asset\AssetEdit;
+use App\Livewire\Admin\Asset\AssetShow;
+use App\Livewire\Admin\Asset\AssetIndex;
+use App\Livewire\Admin\Asset\AssetCreate;
 use App\Livewire\Admin\Users\UserManager;
+use App\Http\Controllers\ProfileController;
 use App\Livewire\Admin\Master\CategoryManager;
 use App\Livewire\Admin\Master\EmployeeManager;
 use App\Livewire\Admin\Master\LocationManager;
+use App\Livewire\Admin\Master\SupplierManager;
 use App\Livewire\Admin\Master\AssetModelManager;
 use App\Livewire\Admin\Master\AssetStatusManager;
 use App\Livewire\Admin\Master\ManufacturerManager;
@@ -30,17 +36,39 @@ Route::middleware('auth')->group(function () {
 
 // Admin Area
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+
+    // Dashboard
     Route::get('/dashboard', function () {
         return view('admin.dashboard');
     })->name('dashboard');
 
-    Route::get('/master/category', CategoryManager::class)->name('master.category');
-    Route::get('/master/location', LocationManager::class)->name('master.location');
-    Route::get('/master/asset-status', AssetStatusManager::class)->name('master.asset-status');
-    Route::get('/master/manufacturer', ManufacturerManager::class)->name('master.manufacturer');
-    Route::get('/master/asset-model', AssetModelManager::class)->name('master.asset-model');
-    Route::get('/master/employee', EmployeeManager::class)->name('master.employee');
+    // User Management
     Route::get('/users', UserManager::class)->name('users');
+
+    Route::get('/scan', Scan::class)->name('scan');
+
+    // GROUP MASTER DATA
+    Route::prefix('master')->name('master.')->group(function () {
+        Route::get('/category', CategoryManager::class)->name('category');
+        Route::get('/location', LocationManager::class)->name('location');
+        Route::get('/asset-status', AssetStatusManager::class)->name('asset-status');
+        Route::get('/manufacturer', ManufacturerManager::class)->name('manufacturer');
+        Route::get('/asset-model', AssetModelManager::class)->name('asset-model');
+        Route::get('/employee', EmployeeManager::class)->name('employee');
+        Route::get('/supplier', SupplierManager::class)->name('supplier');
+    });
+
+    Route::prefix('assets')->name('assets.')->group(function () {
+        Route::get('/', AssetIndex::class)->name('index');
+        Route::get('/create', AssetCreate::class)->name('create');
+        Route::get('/{asset:asset_tag}', AssetShow::class)->name('show');
+        Route::get('/{asset}/edit', AssetEdit::class)->name('edit');
+
+        // // 5. Aksi Download PDF / QR Code (Opsional)
+        // // Karena ini download file, biasanya pakai Controller biasa (bukan Livewire Component)
+        // // Route Name: admin.assets.qrcodes.pdf
+        // Route::post('/qrcodes/download', [AssetController::class, 'downloadQrCodes'])->name('qrcodes.pdf');
+    });
 });
 
 // Employee Area

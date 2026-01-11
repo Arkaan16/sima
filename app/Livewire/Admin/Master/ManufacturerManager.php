@@ -17,12 +17,12 @@ use Illuminate\Validation\Rule;
  * * Komponen Livewire untuk menangani CRUD (Create, Read, Update, Delete)
  * pada data Master Pabrikan (Manufacturer).
  * * Fitur Utama:
- * 1. Manajemen data kontak support (URL, Email, Telepon).
+ * 1. Kelola data kontak support (URL, Email, Telepon).
  * 2. Upload logo pabrikan dengan fitur preview dan hapus file fisik.
  * 3. Validasi nama unik (case-insensitive).
  */
 #[Layout('components.layouts.admin')]
-#[Title('Manajemen Pabrikan')]
+#[Title('Kelola Pabrikan')]
 class ManufacturerManager extends Component
 {
     use WithPagination;

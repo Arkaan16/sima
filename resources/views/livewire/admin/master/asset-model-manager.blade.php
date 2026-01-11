@@ -1,6 +1,6 @@
 <div class="container mx-auto px-4">
 
-    <h1 class="text-2xl font-bold mb-6 text-gray-800">Manajemen Model Aset</h1>
+    <h1 class="text-2xl font-bold mb-6 text-gray-800">Kelola Model Aset</h1>
     
     {{-- FLASH MESSAGES --}}
     @if (session()->has('message'))
@@ -246,7 +246,7 @@
                         <div class="col-span-1 md:col-span-2">
                             <label class="block text-sm font-bold text-gray-700 mb-1">
                                 Foto Model Aset
-                                <span class="text-xs font-normal text-gray-500 ml-1">(Format: JPG, JPEG, PNG)</span>
+                                <span class="text-xs font-normal text-gray-500 ml-1">(Format: JPG, JPEG, PNG | Maks: 2MB)</span>
                             </label>
                             
                             <div class="flex items-center gap-4 p-3 border border-gray-200 rounded-xl bg-gray-50">

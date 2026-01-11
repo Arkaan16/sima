@@ -15,4 +15,10 @@ class Employee extends Model
     // public function assets() {
     //     return $this->hasMany(Asset::class);
     // }
+
+    public function assets()
+    {
+        // Ambil semua aset yang assigned_to nya adalah Employee ini
+        return $this->morphMany(Asset::class, 'assigned_to');
+    }
 }

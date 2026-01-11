@@ -22,7 +22,7 @@ describe('Asset Model Manager - Complete Suite', function () {
     test('halaman render dengan sukses', function () {
         Livewire::test(AssetModelManager::class)
             ->assertStatus(200)
-            ->assertSee('Manajemen Model Aset');
+            ->assertSee('Kelola Model Aset');
     });
 
     // --- 2. PAGINATION & SORTING (BARU DITAMBAHKAN) ---

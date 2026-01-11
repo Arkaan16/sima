@@ -192,13 +192,34 @@ class AssetModelManager extends Component
      */
     public function render()
     {
-        $assetModels = AssetModel::with(['category', 'manufacturer'])
-            // Logika Pencarian Global:
-            // Cari data jika $this->search terisi
+        $assetModels = AssetModel::with([
+                // 1. OPTIMASI MEMORY:
+                // Hanya ambil kolom 'id' dan 'name' dari tabel categories.
+                // (Kolom lain yang tidak dipakai tidak perlu ditarik ke RAM)
+                'category:id,name', 
+                
+                // Hanya ambil 'id', 'name', dan 'image' dari manufacturers.
+                'manufacturer:id,name,image' 
+            ])
+            // 2. LOGIC PENCARIAN (SEARCH):
             ->when($this->search, function($q) {
-                $q->where('name', 'like', '%' . $this->search . '%') // Cari berdasarkan nama model
-                  ->orWhere('model_number', 'like', '%' . $this->search . '%') // Atau nomor model
-                  ->orWhereHas('manufacturer', fn($m) => $m->where('name', 'like', '%' . $this->search . '%')); // Atau nama pabrikan
+                // Kita bungkus dalam where(function(...)) agar logic OR tidak bocor.
+                // Ini penting supaya query-nya jadi: (Kondisi A ATAU B ATAU C) AND (Data Tidak Terhapus)
+                $q->where(function($subQ) {
+                    $subQ->where('name', 'like', '%' . $this->search . '%') // Cari Nama Model
+                         ->orWhere('model_number', 'like', '%' . $this->search . '%') // Cari No. Model
+                         
+                         // Cari berdasarkan Nama Pabrikan (Relasi)
+                         ->orWhereHas('manufacturer', function($m) {
+                             $m->where('name', 'like', '%' . $this->search . '%');
+                         })
+                         
+                         // (Opsional) Cari berdasarkan Nama Kategori (Relasi)
+                         // Saya tambahkan ini agar user bisa mencari "Laptop" dan muncul semua model laptop.
+                         ->orWhereHas('category', function($c) {
+                             $c->where('name', 'like', '%' . $this->search . '%');
+                         });
+                });
             })
             ->latest() // Urutkan dari yang terbaru
             ->paginate(10); // Batasi 10 data per halaman

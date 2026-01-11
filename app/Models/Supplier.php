@@ -5,11 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class AssetStatus extends Model
+class Supplier extends Model
 {
-    use HasFactory;
+    use HasFactory; 
 
-    protected $fillable = ['name'];
+    protected $fillable = [
+        'name',
+        'image',
+        'contact_name',
+        'email',
+        'phone',
+        'address',
+        'url',
+    ];
 
     public function assets()
     {
