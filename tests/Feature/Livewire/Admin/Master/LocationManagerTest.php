@@ -19,7 +19,7 @@ describe('Location Manager Component', function () {
         Livewire::test(LocationManager::class)
             ->assertStatus(200)
             // Pastikan teks ini sesuai dengan Judul H1 di file blade kamu
-            ->assertSee('Manajemen Lokasi');
+            ->assertSee('Kelola Lokasi');
     });
 
     // --- 2. CREATE (TAMBAH DATA) ---

@@ -19,8 +19,8 @@ describe('Category Manager Component', function () {
         Livewire::test(CategoryManager::class)
             ->assertStatus(200)
             // Pastikan teks ini sesuai dengan <h1 ...> di file Blade kamu
-            // Kalau di blade "Manajemen Kategori", di sini juga harus sama.
-            ->assertSee('Manajemen Kategori'); 
+            // Kalau di blade "Kelola Kategori", di sini juga harus sama.
+            ->assertSee('Kelola Kategori'); 
     });
 
     // --- 2. CREATE ---

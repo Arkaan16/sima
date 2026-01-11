@@ -18,7 +18,7 @@ describe('Employee Manager Component', function () {
     test('halaman render dengan sukses', function () {
         Livewire::test(EmployeeManager::class)
             ->assertStatus(200)
-            ->assertSee('Manajemen Karyawan');
+            ->assertSee('Kelola Karyawan');
     });
 
     // --- 2. CREATE (Happy Path) ---

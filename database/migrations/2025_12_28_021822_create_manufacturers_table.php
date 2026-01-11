@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('manufacturers', function (Blueprint $table) {
             $table->id();
-            $table->string('name'); // Name (Nama Manufacture)
+            $table->string('name')->index(); // Name (Nama Manufacture)
             $table->string('url')->nullable(); // URL Website Resmi
             $table->string('support_url')->nullable(); // URL Support
             $table->string('support_phone')->nullable(); // No Telp Support

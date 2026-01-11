@@ -1,6 +1,6 @@
 <div class="container mx-auto px-4 ">
 
-    <h1 class="text-2xl font-bold mb-6 text-gray-800">Manajemen Kategori</h1>
+    <h1 class="text-2xl font-bold mb-6 text-gray-800">Kelola Kategori</h1>
     
     {{-- FLASH MESSAGE --}}
     @if (session()->has('message'))

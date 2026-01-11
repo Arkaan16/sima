@@ -21,7 +21,7 @@ describe('Asset Status Manager Component', function () {
         Livewire::test(AssetStatusManager::class)
             ->assertStatus(200)
             // Pastikan teks ini sesuai dengan Judul H1 di file blade kamu
-            ->assertSee('Manajemen Status Aset'); 
+            ->assertSee('Kelola Status Aset'); 
     });
 
     // --- 2. TEST CREATE (TAMBAH DATA) ---

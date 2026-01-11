@@ -27,4 +27,16 @@ class Location extends Model
     {
         return $this->hasMany(Location::class, 'parent_location_id');
     }
+
+    // 1. Aset yang "Rumah"-nya di lokasi ini
+    public function defaultAssets()
+    {
+        return $this->hasMany(Asset::class, 'location_id');
+    }
+
+    // 2. Aset yang sedang "Berada/Dipakai" di lokasi ini (Checkin to Location)
+    public function assignedAssets()
+    {
+        return $this->morphMany(Asset::class, 'assigned_to');
+    }
 }

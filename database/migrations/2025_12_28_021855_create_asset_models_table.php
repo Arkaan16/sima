@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('asset_models', function (Blueprint $table) {
             $table->id();
-            $table->string('name'); // Asset Model Name
+            $table->string('name')->index(); // Asset Model Name
             $table->string('model_number')->nullable(); // Model No.
             
             // Relasi ke Categories

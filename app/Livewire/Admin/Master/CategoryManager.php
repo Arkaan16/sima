@@ -15,7 +15,7 @@ use Livewire\Attributes\Layout;
  * Contoh data: "Laptop", "Kendaraan", "Furniture", "Elektronik".
  */
 #[Layout('components.layouts.admin')]
-#[Title('Manajemen Kategori')]
+#[Title('Kelola Kategori')]
 class CategoryManager extends Component
 {
     use WithPagination;

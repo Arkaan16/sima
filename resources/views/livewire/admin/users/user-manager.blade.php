@@ -1,6 +1,6 @@
 <div class="container mx-auto px-4">
 
-    <h1 class="text-2xl font-bold mb-6 text-gray-800">Manajemen Pengguna</h1>
+    <h1 class="text-2xl font-bold mb-6 text-gray-800">Kelola Pengguna</h1>
     
     {{-- FLASH MESSAGES --}}
     @if (session()->has('message'))
