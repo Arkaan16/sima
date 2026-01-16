@@ -11,9 +11,9 @@ use Illuminate\Validation\Rule;
 
 /**
  * Class AssetStatusManager
- * * Komponen Livewire untuk menangani CRUD (Create, Read, Update, Delete)
- * pada data Master Status Aset.
- * Contoh data: "Baik", "Rusak Ringan", "Rusak Berat", "Hilang", "Disewakan".
+ * * Komponen Livewire untuk mengelola data master Status Aset.
+ * Menangani operasi CRUD (Create, Read, Update, Delete) untuk status aset
+ * yang digunakan sebagai referensi pada manajemen aset utama.
  */
 #[Layout('components.layouts.admin')]
 #[Title('Kelola Status Aset')]
@@ -22,48 +22,46 @@ class AssetStatusManager extends Component
     use WithPagination;
 
     // ==========================================
-    // PROPERTIES (VARIABEL UTAMA)
+    // PROPERTIES
     // ==========================================
 
-    /** @var int|null ID dari status yang sedang diedit atau akan dihapus */
+    /** @var int|null ID status aset yang sedang diproses (Edit/Delete) */
     public $assetStatusId;
 
-    /** @var string Nama status aset (Input Form) */
+    /** @var string Nama status aset (State Input) */
     public $name;
 
-    /** @var string Keyword pencarian */
+    /** @var string Keyword untuk pencarian data */
     public $search = '';
 
-    // --- State UI (Kondisi Tampilan) ---
-    public $showFormModal = false;   // Kontrol modal Tambah/Edit
-    public $showDeleteModal = false; // Kontrol modal Hapus
-    public $isEditMode = false;      // Penanda mode Edit vs Create
+    // --- UI State Flags ---
+    public $showFormModal = false;   
+    public $showDeleteModal = false; 
+    public $isEditMode = false;      
 
-    // Query string agar pencarian tetap tersimpan di URL browser
+    /** @var array Konfigurasi agar parameter pencarian tetap ada di URL */
     protected $queryString = ['search' => ['except' => '']];
 
     // ==========================================
-    // VALIDASI & ATURAN
+    // VALIDATION
     // ==========================================
 
     /**
-     * Menentukan aturan validasi input.
-     * Dijalankan saat $this->validate().
+     * Mendefinisikan aturan validasi input.
+     * Mengatur validasi unik pada kolom nama dengan pengecualian untuk ID saat ini
+     * agar tidak terjadi konflik saat proses update.
+     * @return array
      */
     protected function rules()
     {
         return [
-            // Validasi Name:
-            // 1. Wajib diisi (required)
-            // 2. Maksimal 255 karakter
-            // 3. Unik di tabel 'asset_statuses', kolom 'name', KECUALI id saat ini ($this->assetStatusId)
-            //    Ini mencegah error "Name already taken" saat kita update data tanpa ganti nama.
             'name' => 'required|string|max:255|unique:asset_statuses,name,' . $this->assetStatusId,
         ];
     }
 
     /**
-     * Pesan error kustom dalam Bahasa Indonesia.
+     * Pesan error kustom untuk validasi.
+     * @var array
      */
     protected $messages = [
         'name.required' => 'Nama status aset harus diisi.',
@@ -72,12 +70,11 @@ class AssetStatusManager extends Component
     ];
 
     // ==========================================
-    // LOGIKA RENDER & PENCARIAN
+    // RENDER & SEARCH LOGIC
     // ==========================================
 
     /**
-     * Dijalankan otomatis saat user mengetik di kolom pencarian.
-     * Mereset halaman ke 1 agar hasil search yang sedikit tidak error di pagination.
+     * Reset pagination ke halaman 1 saat query pencarian berubah.
      */
     public function updatingSearch()
     {
@@ -85,39 +82,38 @@ class AssetStatusManager extends Component
     }
 
     /**
-     * Render tampilan blade.
-     * Mengambil data dari database dengan filter pencarian dan pagination.
+     * Merender view komponen.
+     * Mengambil data status aset dengan filter pencarian dan pagination.
+     * @return \Illuminate\View\View
      */
     public function render()
     {
         return view('livewire.admin.master.asset-status-manager', [
             'assetStatuses' => AssetStatus::query()
-                // Jika ada search, filter berdasarkan nama
                 ->when($this->search, fn($q) => $q->where('name', 'like', '%' . $this->search . '%'))
-                ->latest() // Urutkan dari data terbaru
-                ->paginate(10), // Batasi 10 baris per halaman
+                ->latest() 
+                ->paginate(10), 
         ]);
     }
 
     // ==========================================
-    // LOGIKA CRUD (CREATE, UPDATE, DELETE)
+    // CRUD LOGIC
     // ==========================================
 
     /**
-     * Mereset semua field form menjadi kosong.
-     * Dipanggil sebelum membuka modal atau setelah simpan.
+     * Mereset seluruh state input dan validasi ke kondisi awal.
      */
     public function resetInputFields()
     {
         $this->name = '';
-        $this->assetStatusId = null; // Penting: Reset ID agar tidak dianggap mode Edit
+        $this->assetStatusId = null; 
         $this->isEditMode = false;
-        $this->resetErrorBag();      // Hapus pesan error validasi
+        $this->resetErrorBag();      
         $this->resetValidation();
     }
 
     /**
-     * Membuka modal untuk Tambah Data Baru.
+     * Inisialisasi modal untuk pembuatan data baru.
      */
     public function create()
     {
@@ -126,53 +122,48 @@ class AssetStatusManager extends Component
     }
 
     /**
-     * Membuka modal untuk Edit Data.
-     * @param int $id ID data yang dipilih dari tabel.
+     * Inisialisasi modal untuk pengeditan data.
+     * Mengisi form dengan data existing berdasarkan ID.
+     * @param int $id
      */
     public function edit($id)
     {
         $this->resetValidation();
         
-        // Cari data di database
         $status = AssetStatus::findOrFail($id);
 
-        // Isi property komponen dengan data lama
         $this->assetStatusId = $id;
         $this->name = $status->name;
         
-        // Set flag Edit Mode
         $this->isEditMode = true;
         $this->showFormModal = true;
     }
 
     /**
-     * Fungsi Simpan (Menangani Create & Update sekaligus).
+     * Menyimpan data ke database (Create atau Update).
+     * Logika ditentukan berdasarkan status flag $isEditMode.
      */
     public function store()
     {
-        // 1. Jalankan Validasi
         $this->validate();
 
-        // 2. Cek Logika Simpan
         if ($this->isEditMode && $this->assetStatusId) {
-            // -- LOGIKA UPDATE --
             $status = AssetStatus::findOrFail($this->assetStatusId);
             $status->update(['name' => $this->name]);
             
             session()->flash('message', 'Status aset berhasil diperbarui.');
         } else {
-            // -- LOGIKA CREATE --
             AssetStatus::create(['name' => $this->name]);
             
             session()->flash('message', 'Status aset berhasil ditambahkan.');
         }
 
-        // 3. Tutup Modal
         $this->closeModal();
     }
 
     /**
-     * Konfirmasi sebelum menghapus (Mencegah hapus tidak sengaja).
+     * Menampilkan modal konfirmasi hapus.
+     * @param int $id
      */
     public function confirmDelete($id)
     {
@@ -181,18 +172,16 @@ class AssetStatusManager extends Component
     }
 
     /**
-     * Eksekusi penghapusan data.
+     * Menghapus data secara permanen.
+     * Menangani exception jika data sedang digunakan di tabel lain (Foreign Key Constraint).
      */
     public function delete()
     {
         if ($this->assetStatusId) {
             try {
-                // Coba hapus data
                 AssetStatus::findOrFail($this->assetStatusId)->delete();
                 session()->flash('message', 'Status aset berhasil dihapus.');
             } catch (\Exception $e) {
-                // Tangkap error jika data gagal dihapus 
-                // (Biasanya karena ID status ini masih dipakai di tabel Aset/Foreign Key Constraint)
                 session()->flash('error', 'Gagal menghapus status. Mungkin sedang digunakan pada data aset.');
             }
         }
@@ -201,7 +190,7 @@ class AssetStatusManager extends Component
     }
 
     /**
-     * Menutup semua modal dan membersihkan input.
+     * Menutup modal dan membersihkan state form.
      */
     public function closeModal()
     {

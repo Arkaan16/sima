@@ -7,9 +7,18 @@ use App\Models\Asset;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * Class AssetForm
+ *
+ * Objek Form Livewire yang menangani validasi dan manipulasi data untuk entitas Aset.
+ * Mengelola proses sanitasi input, upload gambar, serta logika relasi polimorfik
+ * sebelum data disimpan ke database.
+ *
+ * @package App\Livewire\Forms
+ */
 class AssetForm extends Form
 {
-    // Simpan Model Aset yang sedang diedit (nullable)
+    /** @var Asset|null Model aset yang sedang diedit (jika ada) */
     public ?Asset $assetModel = null;
 
     // ==========================================
@@ -31,22 +40,24 @@ class AssetForm extends Form
     public $eol_date = '';
 
     // ==========================================
-    // RULES (VALIDASI)
+    // VALIDATION & MESSAGES
     // ==========================================
+
+    /**
+     * Mendefinisikan aturan validasi untuk properti form.
+     * Mengizinkan 'asset_tag' kosong agar dapat digenerate otomatis oleh Model.
+     *
+     * @return array
+     */
     public function rules()
     {
         return [
-            // KUNCI UTAMA: 'nullable'. 
-            // Artinya user boleh mengosongkan form ini.
-            // Jika kosong -> Model akan generate otomatis.
-            // Jika diisi -> Validasi 'size:10' dan 'unique' akan berjalan.
             'asset_tag' => [
                 'nullable', 
                 'string', 
                 'size:10', 
                 Rule::unique('assets', 'asset_tag')->ignore($this->assetModel?->id)
             ],
-
             'image' => 'nullable|image|max:2048|mimes:jpg,jpeg,png', 
             'asset_model_id' => 'required|exists:asset_models,id',
             'asset_status_id' => 'required|exists:asset_statuses,id',
@@ -62,16 +73,16 @@ class AssetForm extends Form
         ];
     }
 
-    // ==========================================
-    // PESAN ERROR (CUSTOM INDONESIA)
-    // ==========================================
+    /**
+     * Menyediakan pesan error kustom dalam Bahasa Indonesia.
+     *
+     * @return array
+     */
     public function messages() 
     {
         return [
-            // Pesan 'required' dihapus karena sekarang boleh kosong
             'asset_tag.size' => 'Jika diisi manual, Kode aset harus tepat 10 karakter.',
             'asset_tag.unique' => 'Kode aset ini sudah digunakan oleh aset lain.',
-            
             'asset_model_id.required' => 'Model/Perangkat wajib dipilih.',
             'asset_model_id.exists' => 'Model yang dipilih tidak valid.',
             'asset_status_id.required' => 'Status aset wajib dipilih.',
@@ -90,10 +101,18 @@ class AssetForm extends Form
     // ACTIONS
     // ==========================================
 
+    /**
+     * Mengisi properti form dengan data dari model Aset yang ada.
+     * Digunakan saat inisialisasi mode Edit.
+     *
+     * @param Asset $asset
+     */
     public function setAsset(Asset $asset)
     {
+        // 1. Set Model Reference
         $this->assetModel = $asset;
 
+        // 2. Mapping data dasar
         $this->asset_tag = $asset->asset_tag;
         $this->serial = $asset->serial;
         $this->asset_model_id = $asset->asset_model_id;
@@ -101,10 +120,12 @@ class AssetForm extends Form
         $this->location_id = $asset->location_id;
         $this->supplier_id = $asset->supplier_id;
         
-        if ($asset->assigned_to_type === 'App\Models\Employee') {
+        // 3. Mapping relasi polimorfik (jika aset ditugaskan ke karyawan)
+        if ($asset->assigned_to_type === \App\Models\Employee::class) {
             $this->assigned_employee_id = $asset->assigned_to_id;
         }
 
+        // 4. Formatting data tanggal dan angka
         $this->order_number = $asset->order_number;
         $this->purchase_date = $asset->purchase_date ? $asset->purchase_date->format('Y-m-d') : '';
         $this->purchase_cost = $asset->purchase_cost;
@@ -112,35 +133,45 @@ class AssetForm extends Form
         $this->eol_date = $asset->eol_date ? $asset->eol_date->format('Y-m-d') : '';
     }
 
+    /**
+     * Menyimpan data aset baru ke database.
+     */
     public function store()
     {
+        // 1. Validasi Input
         $this->validate();
         
-        // Ambil data yang sudah dibersihkan (string kosong jadi null)
+        // 2. Sanitasi & Persiapan Data
         $data = $this->prepareData();
 
-        // Upload gambar jika ada
+        // 3. Proses Upload Gambar (Jika ada)
         if ($this->image) {
             $data['image'] = $this->image->store('assets', 'public');
         }
 
-        // SIMPAN DATA
-        // Karena di prepareData() asset_tag yang kosong sudah diubah jadi NULL,
-        // Maka Model Asset (Event creating) akan mendeteksinya dan membuatkan tag otomatis.
+        // 4. Simpan ke Database
+        // Catatan: Jika asset_tag null, model akan men-generate tag otomatis via event creating.
         Asset::create($data);
         
+        // 5. Reset state form
         $this->reset();
     }
 
+    /**
+     * Memperbarui data aset yang sudah ada.
+     */
     public function update()
     {
+        // 1. Validasi Input
         $this->validate(); 
+
+        // 2. Sanitasi & Persiapan Data
         $data = $this->prepareData();
 
-        // Hapus 'asset_tag' agar tidak bisa diubah saat edit
+        // 3. Proteksi Data: Hapus asset_tag dari payload agar tidak berubah
         unset($data['asset_tag']); 
 
-        // Handle Image Update
+        // 4. Manajemen File Gambar (Hapus lama, simpan baru)
         if ($this->image) {
             if ($this->assetModel->image) {
                 Storage::disk('public')->delete($this->assetModel->image);
@@ -148,15 +179,22 @@ class AssetForm extends Form
             $data['image'] = $this->image->store('assets', 'public');
         }
 
+        // 5. Eksekusi Update
         $this->assetModel->update($data);
     }
 
+    /**
+     * Membersihkan dan mempersiapkan data sebelum disimpan.
+     * Mengubah string kosong menjadi NULL dan menangani relasi polimorfik.
+     *
+     * @return array
+     */
     protected function prepareData()
     {
-        // 1. Buang field yang tidak masuk database langsung
+        // 1. Filter Field: Hapus properti yang bukan kolom database langsung
         $data = $this->except(['image', 'assetModel', 'assigned_employee_id']);
 
-        // 2. Ubah string kosong jadi NULL
+        // 2. Normalisasi Data: Ubah string kosong ('') menjadi NULL untuk kolom nullable
         $nullableFields = [
             'supplier_id', 'purchase_date', 'eol_date', 
             'purchase_cost', 'warranty_months', 'order_number', 
@@ -169,18 +207,14 @@ class AssetForm extends Form
             }
         }
 
-        // 3. LOGIKA POLYMORPHIC (PERBAIKAN PERMANEN DISINI)
-        // Default: Set null
+        // 3. Penanganan Relasi Polimorfik (Assigned To)
+        // Default reset ke null
         $data['assigned_to_type'] = null;
         $data['assigned_to_id'] = null;
 
-        // Jika user memilih karyawan
+        // Jika ID karyawan diisi, set tipe polimorfik ke Class Employee
         if (!empty($this->assigned_employee_id)) {
             $data['assigned_to_id'] = $this->assigned_employee_id;
-            
-            // --- PERUBAHAN UTAMA ---
-            // JANGAN PAKAI STRING MANUAL: 'App\Models\Employee'
-            // PAKAI CARA INI AGAR 100% AKURAT SESUAI NAMESPACE ASLI:
             $data['assigned_to_type'] = \App\Models\Employee::class; 
         }
 

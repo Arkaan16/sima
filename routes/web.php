@@ -9,6 +9,7 @@ use App\Livewire\Admin\Asset\AssetIndex;
 use App\Livewire\Admin\Asset\AssetCreate;
 use App\Livewire\Admin\Users\UserManager;
 use App\Http\Controllers\ProfileController;
+use App\Livewire\Admin\Report\ExportReport;
 use App\Livewire\Admin\Master\CategoryManager;
 use App\Livewire\Admin\Master\EmployeeManager;
 use App\Livewire\Admin\Master\LocationManager;
@@ -16,6 +17,10 @@ use App\Livewire\Admin\Master\SupplierManager;
 use App\Livewire\Admin\Master\AssetModelManager;
 use App\Livewire\Admin\Master\AssetStatusManager;
 use App\Livewire\Admin\Master\ManufacturerManager;
+use App\Livewire\Admin\Maintenance\MaintenanceEdit;
+use App\Livewire\Admin\Maintenance\MaintenanceShow;
+use App\Livewire\Admin\Maintenance\MaintenanceIndex;
+use App\Livewire\Admin\Maintenance\MaintenanceCreate;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -69,6 +74,23 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         // // Route Name: admin.assets.qrcodes.pdf
         // Route::post('/qrcodes/download', [AssetController::class, 'downloadQrCodes'])->name('qrcodes.pdf');
     });
+
+    Route::prefix('maintenances')->name('maintenances.')->group(function () {
+        // 1. Halaman Index
+        Route::get('/', MaintenanceIndex::class)->name('index');
+        
+        // 2. Halaman Create (WAJIB sebelum show/edit)
+        Route::get('/create', MaintenanceCreate::class)->name('create');
+        
+        // 3. Halaman Show (Detail)
+        // Menggunakan {maintenance} agar otomatis connect ke model di Livewire (Route Model Binding)
+        Route::get('/{maintenance}', MaintenanceShow::class)->name('show');
+        
+        // 4. Halaman Edit
+        Route::get('/{maintenance}/edit', MaintenanceEdit::class)->name('edit');
+    });
+
+    Route::get('/reports', ExportReport::class)->name('reports');
 });
 
 // Employee Area

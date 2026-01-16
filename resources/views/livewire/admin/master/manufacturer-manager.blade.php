@@ -179,7 +179,7 @@
         <div wire:click="closeModal" class="fixed inset-0 bg-gray-900/60 transition-opacity" aria-hidden="true"></div>
         <div class="bg-white rounded-2xl shadow-2xl transform transition-all w-full max-w-2xl relative z-10 flex flex-col max-h-[90vh] overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                <h3 class="text-lg font-bold text-gray-800">{{ $isEditMode ? 'Edit Manufacture' : 'Tambah Manufacture Baru' }}</h3>
+                <h3 class="text-lg font-bold text-gray-800">{{ $isEditMode ? 'Edit Pabrikan' : 'Tambah Pabrikan Baru' }}</h3>
                 <button wire:click="closeModal" class="text-gray-400 hover:text-gray-600 transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
@@ -188,7 +188,7 @@
                 <form wire:submit.prevent="store">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="col-span-1 md:col-span-2">
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Nama Manufacture <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Nama Pabrikan <span class="text-red-500">*</span></label>
                             <input type="text" wire:model="name" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition shadow-sm">
                             @error('name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
@@ -202,9 +202,16 @@
                             <input type="text" wire:model="support_url" placeholder="https://" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition shadow-sm">
                             @error('support_url') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Support Phone</label>
-                            <input type="text" wire:model="support_phone" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition shadow-sm">
+                        <div class="col-span-1">
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Support Phone</label>                           
+                            <input type="tel" 
+                                wire:model="support_phone"                               
+                                oninput="this.value = this.value.replace(/[^0-9+\-() ]/g, '')"                     
+                                class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition shadow-sm"
+                                placeholder="Contoh: 0812...">                     
+                            @error('support_phone') 
+                                <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> 
+                            @enderror
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">Support Email</label>
@@ -213,9 +220,9 @@
                         </div>
                         <div class="col-span-1 md:col-span-2">
                             <label class="block text-sm font-bold text-gray-700 mb-1">
-                                Logo Manufacture 
+                                Logo Pabrikan 
                                 {{-- TAMBAHAN TEKS INFORMASI --}}
-                                <span class="text-xs font-normal text-gray-500 ml-1">(Format: JPG, JPEG, PNG)</span>
+                                <span class="text-xs font-normal text-gray-500 ml-1">(Format: JPG, JPEG, PNG | Maks 10MB)</span>
                             </label>
                             
                             <div class="flex items-center gap-4 p-3 border border-gray-200 rounded-xl bg-gray-50">
