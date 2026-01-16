@@ -6,7 +6,7 @@
     Interface untuk memindai QR code aset menggunakan kamera perangkat.
     Terintegrasi dengan library html5-qrcode untuk deteksi real-time.
     
-    OPTIMIZED: Mobile-first design dengan responsif sempurna + Border hijau saat sukses scan
+    FIXED: Kamera otomatis mati saat berpindah halaman (tanpa wire:navigate)
 --}}
 
 <div class="flex flex-col items-center justify-start pt-1 sm:pt-2 min-h-screen px-2 pb-4 sm:px-4 sm:pb-6" wire:ignore>
@@ -45,7 +45,6 @@
 
         {{-- Pesan Error --}}
         <div id="error" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm hidden"></div>
-        
     </div>
 </div>
 
@@ -71,7 +70,9 @@
                     await scannerInstance.stop();
                 }
                 await scannerInstance.clear();
-            } catch (err) {}
+            } catch (err) {
+                console.error('Error destroying scanner:', err);
+            }
             scannerInstance = null;
             isScanning = false;
         }
@@ -122,17 +123,63 @@
                 fps: 15,
                 qrbox: qrBoxSize,
                 aspectRatio: 1.0,
-                disableFlip: false,
-                videoConstraints: {
-                    facingMode: "environment",
-                    aspectRatio: 1.0,
-                    focusMode: "continuous"
-                }
+                disableFlip: false
             };
             
-            await scannerInstance.start(
-                { facingMode: "environment" },
-                config,
+            // Konfigurasi SMART: Prioritas kamera belakang, fallback ke webcam
+            let cameraConfig = { facingMode: "environment" };
+            
+            try {
+                // Coba gunakan kamera belakang dulu (untuk mobile)
+                await scannerInstance.start(
+                    { facingMode: { exact: "environment" } },
+                    config,
+                    
+                    (decodedText) => {
+                        // Cegah eksekusi ganda
+                        if (!isScanning) return;
+                        isScanning = false; 
+
+                        // Pause scanner
+                        try {
+                            scannerInstance.pause(true); 
+                        } catch(e) {}
+
+                        // ANIMASI BORDER HIJAU + POP-UP
+                        container.classList.remove('border-blue-300', 'border-2');
+                        container.classList.add('border-green-500', 'border-4', 'shadow-2xl', 'shadow-green-500/50');
+                        
+                        // Tampilkan pop-up sukses dengan animasi scale
+                        if (resultDiv && resultPopup) {
+                            resultDiv.classList.remove('hidden');
+                            setTimeout(() => {
+                                resultPopup.classList.remove('scale-0');
+                                resultPopup.classList.add('scale-100');
+                            }, 10);
+                        }
+
+                        // Getaran HP
+                        if (navigator.vibrate) navigator.vibrate(200);
+
+                        // Redirect setelah animasi selesai
+                        setTimeout(() => {
+                            window.location.href = decodedText;
+                        }, 400);
+                    },
+                    
+                    (err) => {}
+                );
+                
+                isScanning = true;
+                if (loadingIndicator) loadingIndicator.classList.add('hidden');
+                
+            } catch (backCameraError) {
+                // Jika kamera belakang gagal, coba ANY camera (webcam desktop)
+                console.log('Kamera belakang tidak tersedia, mencoba kamera lain...');
+                
+                await scannerInstance.start(
+                    cameraConfig,  // Fallback ke "environment" tanpa exact
+                    config,
                 
                 (decodedText) => {
                     // Cegah eksekusi ganda
@@ -145,11 +192,10 @@
                     } catch(e) {}
 
                     // ANIMASI BORDER HIJAU + POP-UP
-                    // 1. Ubah border menjadi hijau tebal dengan glow effect
                     container.classList.remove('border-blue-300', 'border-2');
                     container.classList.add('border-green-500', 'border-4', 'shadow-2xl', 'shadow-green-500/50');
                     
-                    // 2. Tampilkan pop-up sukses dengan animasi scale
+                    // Tampilkan pop-up sukses dengan animasi scale
                     if (resultDiv && resultPopup) {
                         resultDiv.classList.remove('hidden');
                         setTimeout(() => {
@@ -158,50 +204,57 @@
                         }, 10);
                     }
 
-                    // 3. Getaran HP
+                    // Getaran HP
                     if (navigator.vibrate) navigator.vibrate(200);
 
-                    // 4. Redirect setelah animasi selesai (400ms = waktu untuk melihat feedback)
+                    // Redirect setelah animasi selesai
                     setTimeout(() => {
-                        window.location.replace(decodedText);
+                        window.location.href = decodedText;
                     }, 400);
                 },
+                    
+                    (err) => {}
+                );
                 
-                (err) => {}
-            );
-            
-            isScanning = true;
-            
-            if (loadingIndicator) loadingIndicator.classList.add('hidden');
+                isScanning = true;
+                if (loadingIndicator) loadingIndicator.classList.add('hidden');
+            }
             
         } catch (err) {
-            console.error(err);
+            console.error('Scanner error:', err);
             isScanning = false;
             if (loadingIndicator) loadingIndicator.classList.add('hidden');
             if (errorDiv) {
-                errorDiv.textContent = 'Gagal akses kamera.';
+                errorDiv.textContent = 'Gagal mengakses kamera. Pastikan izin kamera telah diberikan.';
                 errorDiv.classList.remove('hidden');
             }
         }
     };
     
-    const isOnScanPage = () => document.getElementById('reader-container') !== null;
+    // Event handler untuk membersihkan scanner saat halaman akan ditinggalkan
+    const handleBeforeUnload = () => {
+        destroyScanner();
+    };
     
-    const handlePageLoad = () => {
-        if (isOnScanPage()) {
-            setTimeout(initializeScanner, 100);
-        } else {
+    const handleVisibilityChange = () => {
+        if (document.hidden) {
             destroyScanner();
         }
     };
-
+    
+    // Inisialisasi scanner saat halaman dimuat
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', handlePageLoad);
+        document.addEventListener('DOMContentLoaded', initializeScanner);
     } else {
-        handlePageLoad();
+        initializeScanner();
     }
     
-    document.addEventListener('livewire:navigated', handlePageLoad);
+    // Event listeners untuk memastikan kamera mati saat navigasi
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Cleanup saat Livewire component di-unmount
     document.addEventListener('livewire:navigating', destroyScanner);
     
 })();

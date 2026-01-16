@@ -22,10 +22,6 @@
                         <h3 class="text-base font-semibold text-gray-900 border-b border-gray-100 pb-2 mb-4">Identitas Aset</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                             
-                            {{-- ==================================================== --}}
-                            {{-- CUSTOM DROPDOWN: MODEL (DENGAN GAMBAR) --}}
-                            {{-- ==================================================== --}}
-                            {{-- CUSTOM DROPDOWN: MODEL --}}
                             {{-- CUSTOM DROPDOWN: MODEL --}}
                             <div class="md:col-span-2" x-data="{ open: false }">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Model / Perangkat <span class="text-red-500">*</span></label>

@@ -10,9 +10,9 @@ use Livewire\Attributes\Layout;
 
 /**
  * Class CategoryManager
- * * Komponen Livewire untuk menangani CRUD (Create, Read, Update, Delete)
- * pada data Master Kategori Aset.
- * Contoh data: "Laptop", "Kendaraan", "Furniture", "Elektronik".
+ * * Komponen Livewire untuk mengelola data master Kategori Aset.
+ * Menangani operasi CRUD (Create, Read, Update, Delete) untuk kategori aset
+ * yang berfungsi sebagai pengelompokan utama dalam sistem manajemen aset.
  */
 #[Layout('components.layouts.admin')]
 #[Title('Kelola Kategori')]
@@ -20,53 +20,49 @@ class CategoryManager extends Component
 {
     use WithPagination;
     
-    // Mengatur tema pagination agar sesuai dengan framework CSS Tailwind
     protected $paginationTheme = 'tailwind';
 
     // ==========================================
-    // PROPERTIES (VARIABEL UTAMA)
+    // PROPERTIES
     // ==========================================
 
-    /** @var int|null ID kategori yang sedang diedit atau akan dihapus */
+    /** @var int|null ID kategori yang sedang diproses (Edit/Delete) */
     public $categoryId;
 
-    /** @var string Nama kategori (Input Form) */
+    /** @var string Nama kategori (State Input) */
     public $name;
 
-    /** @var string Keyword pencarian data */
+    /** @var string Keyword untuk pencarian data */
     public $search = '';
 
-    // --- State UI (Kondisi Tampilan) ---
-    public $showFormModal = false;   // Kontrol tampil/sembunyi modal Form
-    public $showDeleteModal = false; // Kontrol tampil/sembunyi modal Hapus
-    public $isEditMode = false;      // Penanda apakah sedang Edit atau Tambah Baru
+    // --- UI State Flags ---
+    public $showFormModal = false;   
+    public $showDeleteModal = false; 
+    public $isEditMode = false;      
 
-    // Memastikan parameter search tetap ada di URL browser saat halaman direfresh
+    /** @var array Konfigurasi agar parameter pencarian tetap ada di URL */
     protected $queryString = ['search' => ['except' => '']];
 
     // ==========================================
-    // VALIDASI & ATURAN
+    // VALIDATION
     // ==========================================
 
     /**
-     * Menentukan aturan validasi input.
-     * Dijalankan otomatis saat $this->validate().
+     * Mendefinisikan aturan validasi input.
+     * Mengatur validasi unik pada kolom nama dengan pengecualian untuk ID saat ini
+     * (unique ignore) untuk mencegah konflik saat proses update data.
+     * @return array
      */
     protected function rules()
     {
         return [
-            // Validasi Name:
-            // 1. Wajib diisi (required)
-            // 2. Maksimal 255 karakter
-            // 3. Unik di tabel 'categories' kolom 'name'.
-            //    Bagian ",' . $this->categoryId" berfungsi untuk MENGECUALIKAN ID ini saat cek unik.
-            //    Ini penting agar saat Edit data, nama yang sama tidak dianggap duplikat.
             'name' => 'required|string|max:255|unique:categories,name,' . $this->categoryId,
         ];
     }
 
     /**
-     * Pesan error kustom dalam Bahasa Indonesia.
+     * Pesan error kustom untuk validasi.
+     * @var array
      */
     protected $messages = [
         'name.required' => 'Nama kategori harus diisi.',
@@ -75,12 +71,11 @@ class CategoryManager extends Component
     ];
 
     // ==========================================
-    // LOGIKA RENDER & PENCARIAN
+    // RENDER & SEARCH LOGIC
     // ==========================================
 
     /**
-     * Dijalankan saat properti $search berubah (user mengetik).
-     * Reset pagination ke halaman 1 agar hasil pencarian terlihat benar.
+     * Reset pagination ke halaman 1 saat query pencarian berubah.
      */
     public function updatingSearch()
     {
@@ -88,39 +83,38 @@ class CategoryManager extends Component
     }
 
     /**
-     * Render view blade.
-     * Mengambil data dari database, memfilter berdasarkan pencarian, dan membuat pagination.
+     * Merender view komponen.
+     * Mengambil data kategori dengan filter pencarian dan pagination.
+     * @return \Illuminate\View\View
      */
     public function render()
     {
         return view('livewire.admin.master.category-manager', [
             'categories' => Category::query()
-                // Jika $this->search ada isinya, filter berdasarkan nama
                 ->when($this->search, fn($q) => $q->where('name', 'like', '%' . $this->search . '%'))
-                ->latest() // Urutkan dari yang paling baru dibuat
-                ->paginate(10), // Batasi 10 data per halaman
+                ->latest() 
+                ->paginate(10), 
         ]);
     }
 
     // ==========================================
-    // LOGIKA CRUD (CREATE, UPDATE, DELETE)
+    // CRUD LOGIC
     // ==========================================
 
     /**
-     * Reset semua input form kembali bersih.
-     * Dipanggil sebelum membuka modal Create atau setelah selesai Simpan.
+     * Mereset seluruh state input dan validasi ke kondisi awal.
      */
     public function resetInputFields()
     {
         $this->name = '';
-        $this->categoryId = null; // Penting: Reset ID agar logika Edit tidak jalan
+        $this->categoryId = null; 
         $this->isEditMode = false;
-        $this->resetErrorBag();   // Hapus pesan error validasi (merah-merah)
+        $this->resetErrorBag();   
         $this->resetValidation();
     }
 
     /**
-     * Membuka modal untuk Tambah Data Baru.
+     * Inisialisasi modal untuk pembuatan data baru.
      */
     public function create()
     {
@@ -129,55 +123,48 @@ class CategoryManager extends Component
     }
 
     /**
-     * Membuka modal untuk Edit Data.
-     * @param int $id ID data yang akan diedit.
+     * Inisialisasi modal untuk pengeditan data.
+     * Mengisi form dengan data existing berdasarkan ID.
+     * @param int $id
      */
     public function edit($id)
     {
         $this->resetValidation();
         
-        // Cari data kategori berdasarkan ID
         $category = Category::findOrFail($id);
 
-        // Isi variabel komponen dengan data dari database
         $this->categoryId = $id;
         $this->name = $category->name;
         
-        // Aktifkan mode edit & buka modal
         $this->isEditMode = true;
         $this->showFormModal = true;
     }
 
     /**
-     * Fungsi Utama untuk Menyimpan Data.
-     * Menangani logika Create (Baru) dan Update (Edit) sekaligus.
+     * Menyimpan data ke database (Create atau Update).
+     * Logika ditentukan berdasarkan status flag $isEditMode.
      */
     public function store()
     {
-        // 1. Jalankan Validasi
         $this->validate();
 
-        // 2. Cek apakah ini mode Edit atau Baru
         if ($this->isEditMode && $this->categoryId) {
-            // -- Update Data Lama --
             $category = Category::findOrFail($this->categoryId);
             $category->update(['name' => $this->name]);
             
             session()->flash('message', 'Kategori berhasil diperbarui.');
         } else {
-            // -- Buat Data Baru --
             Category::create(['name' => $this->name]);
             
             session()->flash('message', 'Kategori berhasil ditambahkan.');
         }
 
-        // 3. Tutup Modal setelah selesai
         $this->closeModal();
     }
 
     /**
-     * Konfirmasi hapus data (Mencegah penghapusan tidak sengaja).
-     * Hanya menampilkan modal konfirmasi, belum menghapus data.
+     * Menampilkan modal konfirmasi hapus.
+     * @param int $id
      */
     public function confirmDelete($id)
     {
@@ -186,18 +173,16 @@ class CategoryManager extends Component
     }
 
     /**
-     * Eksekusi penghapusan data dari database.
+     * Menghapus data secara permanen.
+     * Menangani exception jika data sedang digunakan di tabel lain (Foreign Key Constraint).
      */
     public function delete()
     {
         if ($this->categoryId) {
             try {
-                // Coba hapus data
                 Category::findOrFail($this->categoryId)->delete();
                 session()->flash('message', 'Kategori berhasil dihapus.');
             } catch (\Exception $e) {
-                // Tangkap Error (Biasanya Foreign Key Constraint)
-                // Jika Kategori ini sudah dipakai oleh Aset, maka tidak boleh dihapus.
                 session()->flash('error', 'Gagal menghapus kategori. Kategori ini mungkin sedang digunakan oleh data aset.');
             }
         }
@@ -206,7 +191,7 @@ class CategoryManager extends Component
     }
 
     /**
-     * Menutup semua modal (Form & Delete) dan mereset input.
+     * Menutup modal dan membersihkan state form.
      */
     public function closeModal()
     {

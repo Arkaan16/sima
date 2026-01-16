@@ -200,8 +200,13 @@
 
                         {{-- No HP --}}
                         <div class="col-span-1">
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Nomor Telepon</label>
-                            <input type="text" wire:model="phone" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition shadow-sm" placeholder="Contoh: 0812...">
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Nomor Telepon</label>                       
+                            <input type="tel" 
+                                wire:model="phone"                               
+                                oninput="this.value = this.value.replace(/[^0-9+]/g, '')"                               
+                                class="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition shadow-sm" 
+                                placeholder="Contoh: 0812...">
+                                
                             @error('phone') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
 
@@ -229,7 +234,7 @@
                         <div class="col-span-1 md:col-span-2">
                             <label class="block text-sm font-bold text-gray-700 mb-1">
                                 Logo Pemasok
-                                <span class="text-xs font-normal text-gray-500 ml-1">(Format: JPG, JPEG, PNG | Maks: 2MB)</span>
+                                <span class="text-xs font-normal text-gray-500 ml-1">(Format: JPG, JPEG, PNG | Maks: 10MB)</span>
                             </label>
                             
                             <div class="flex items-center gap-4 p-3 border border-gray-200 rounded-xl bg-gray-50">
