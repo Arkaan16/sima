@@ -12,21 +12,9 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-
-// Tambahan Import untuk Kompresi Gambar
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 
-/**
- * Class AssetModelManager
- * * Komponen Livewire untuk mengelola data master Model Aset (Asset Models).
- * Menyediakan fungsionalitas CRUD lengkap, termasuk:
- * - Pagination dan pencarian data.
- * - Form modal untuk Tambah dan Edit data.
- * - Validasi input unik.
- * - Pengelolaan upload gambar (termasuk hapus file fisik saat update/delete).
- * - Fitur dropdown pencarian untuk Kategori dan Pabrikan.
- */
 #[Layout('components.layouts.admin')]
 #[Title('Kelola Model Aset')]
 class AssetModelManager extends Component
@@ -37,68 +25,52 @@ class AssetModelManager extends Component
     protected $paginationTheme = 'tailwind';
 
     // ==========================================
-    // DATA PROPERTIES
+    // PROPERTIES
     // ==========================================
 
-    /** @var int|null ID data yang sedang diproses (untuk Edit/Delete) */
     public $assetModelId;
-
-    /** @var string Nama model aset */
-    public $name;
-
-    /** @var string|null Nomor seri/model aset */
-    public $model_number;
-
-    /** @var int|null ID Kategori terpilih */
+    public $name = '';
+    public $model_number = '';
     public $category_id;
-
-    /** @var int|null ID Pabrikan terpilih */
     public $manufacturer_id;
     
-    // --- Image Handling ---
-    /** @var mixed File upload baru (Temporary) */
+    // Image Handling
     public $newImage;
-
-    /** @var string|null Path gambar lama (untuk referensi saat update/delete) */
     public $oldImage;
 
-    // --- Dropdown UI Helper ---
+    // UI Helper (Dropdown & Search)
     public $categorySearch = ''; 
     public $manufacturerSearch = ''; 
     public $selectedCategoryName = ''; 
     public $selectedManufacturerName = ''; 
 
-    // --- UI State ---
-    public $search = ''; 
-    public $showFormModal = false; 
-    public $showDeleteModal = false; 
+    // UI State
     public $isEditMode = false; 
+    public $deleteName = ''; // Untuk text konfirmasi hapus
+
+    public $search = ''; 
 
     protected $queryString = ['search' => ['except' => '']];
 
     // ==========================================
-    // VALIDATION LOGIC
+    // LIFECYCLE & VALIDATION
     // ==========================================
 
-    /**
-     * Mendefinisikan aturan validasi.
-     * Mengatur validasi unik pada nama dan nomor model dengan pengecualian ID saat update.
-     * @return array Rules validasi Laravel.
-     */
+    public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
     protected function rules()
     {
         return [
             'name' => [
-                'required', 
-                'string', 
-                'max:255', 
-                'unique:asset_models,name,' . $this->assetModelId
+                'required', 'string', 'max:255', 
+                Rule::unique('asset_models', 'name')->ignore($this->assetModelId)
             ],
             'model_number' => [
-                'nullable', 
-                'string', 
-                'max:255',
-                'unique:asset_models,model_number,' . $this->assetModelId
+                'nullable', 'string', 'max:255',
+                Rule::unique('asset_models', 'model_number')->ignore($this->assetModelId)
             ],
             'category_id' => 'required|exists:categories,id',
             'manufacturer_id' => 'required|exists:manufacturers,id',
@@ -106,120 +78,72 @@ class AssetModelManager extends Component
         ];
     }
 
-    /**
-     * Pesan error kustom untuk validasi.
-     * @var array
-     */
     protected $messages = [
         'name.required' => 'Nama model aset wajib diisi.',
-        'name.unique' => 'Nama model aset ini sudah terdaftar. Gunakan nama lain.',
-        'model_number.unique' => 'Nomor model ini sudah digunakan oleh aset lain.',
+        'name.unique' => 'Nama model aset ini sudah terdaftar.',
+        'model_number.unique' => 'Nomor model ini sudah digunakan.',
         'category_id.required' => 'Kategori wajib dipilih.',
         'manufacturer_id.required' => 'Pabrikan wajib dipilih.',
         'newImage.image' => 'File harus berupa gambar.',
         'newImage.max' => 'Ukuran gambar maksimal 10MB.',
-        'newImage.mimes' => 'Format gambar harus jpg, jpeg, png, atau webp.',
     ];
 
     // ==========================================
-    // SEARCH & DROPDOWN LOGIC
+    // ACTIONS (Server-Side Logic)
     // ==========================================
 
-    /**
-     * Reset pagination saat query pencarian utama berubah.
-     */
-    public function updatingSearch()
+    // 1. Persiapan Create
+    public function create()
     {
-        $this->resetPage();
+        $this->resetInputFields();
+        // Kirim sinyal ke browser
+        $this->dispatch('open-modal-form');
     }
 
-    /**
-     * Mengambil daftar Kategori berdasarkan keyword pencarian dropdown.
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function getCategoriesProperty()
+    // 2. Persiapan Edit
+    public function edit($id)
     {
-        return Category::query()
-            ->when($this->categorySearch, fn($q) => $q->where('name', 'like', '%' . $this->categorySearch . '%'))
-            ->limit(5)->get();
+        $model = AssetModel::with('category', 'manufacturer')->find($id);
+        if (!$model) return;
+
+        // Isi State
+        $this->assetModelId = $model->id;
+        $this->name = $model->name;
+        $this->model_number = $model->model_number;
+        $this->category_id = $model->category_id;
+        $this->manufacturer_id = $model->manufacturer_id;
+        $this->oldImage = $model->image; // Simpan path gambar lama
+        $this->newImage = null; // Reset upload baru
+        
+        // Isi UI Text untuk Dropdown
+        $this->selectedCategoryName = $model->category->name ?? '';
+        $this->selectedManufacturerName = $model->manufacturer->name ?? '';
+
+        $this->isEditMode = true;
+        $this->resetValidation();
+
+        // Kirim sinyal ke browser
+        $this->dispatch('open-modal-form');
     }
 
-    /**
-     * Mengambil daftar Pabrikan berdasarkan keyword pencarian dropdown.
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function getManufacturersProperty()
+    // 3. Persiapan Hapus
+    public function confirmDelete($id)
     {
-        return Manufacturer::query()
-            ->when($this->manufacturerSearch, fn($q) => $q->where('name', 'like', '%' . $this->manufacturerSearch . '%'))
-            ->limit(5)->get();
+        $model = AssetModel::find($id);
+        if (!$model) return;
+
+        $this->assetModelId = $model->id;
+        $this->deleteName = $model->name;
+
+        $this->dispatch('open-modal-delete');
     }
 
-    /**
-     * Handler seleksi item dropdown Kategori.
-     */
-    public function selectCategory($id, $name)
-    {
-        $this->category_id = $id;          
-        $this->selectedCategoryName = $name; 
-        $this->categorySearch = '';        
-    }
-
-    /**
-     * Handler seleksi item dropdown Pabrikan.
-     */
-    public function selectManufacturer($id, $name)
-    {
-        $this->manufacturer_id = $id;
-        $this->selectedManufacturerName = $name;
-        $this->manufacturerSearch = '';
-    }
-
-    // ==========================================
-    // MAIN LOGIC (CRUD & RENDER)
-    // ==========================================
-
-    /**
-     * Merender view komponen.
-     * Melakukan query data AssetModel dengan optimasi select kolom dan filter pencarian kompleks (OR WhereHas).
-     * @return \Illuminate\View\View
-     */
-    public function render()
-    {
-        $assetModels = AssetModel::with([
-                'category:id,name', 
-                'manufacturer:id,name,image' 
-            ])
-            ->when($this->search, function($q) {
-                $q->where(function($subQ) {
-                    $subQ->where('name', 'like', '%' . $this->search . '%') 
-                           ->orWhere('model_number', 'like', '%' . $this->search . '%')
-                           ->orWhereHas('manufacturer', function($m) {
-                               $m->where('name', 'like', '%' . $this->search . '%');
-                           })
-                           ->orWhereHas('category', function($c) {
-                               $c->where('name', 'like', '%' . $this->search . '%');
-                           });
-                });
-            })
-            ->latest() 
-            ->paginate(10); 
-
-        return view('livewire.admin.master.asset-model-manager', [
-            'assetModels' => $assetModels,
-        ]);
-    }
-
-    /**
-     * Mereset seluruh state input form dan validasi ke kondisi awal.
-     */
     public function resetInputFields()
     {
         $this->name = '';
         $this->model_number = '';
         $this->category_id = null;
         $this->manufacturer_id = null;
-        
         $this->newImage = null;
         $this->oldImage = null;
 
@@ -227,6 +151,7 @@ class AssetModelManager extends Component
         $this->manufacturerSearch = '';
         $this->selectedCategoryName = '';
         $this->selectedManufacturerName = '';
+        $this->deleteName = '';
 
         $this->assetModelId = null; 
         $this->isEditMode = false;
@@ -234,44 +159,6 @@ class AssetModelManager extends Component
         $this->resetValidation();
     }
 
-    /**
-     * Inisialisasi modal untuk pembuatan data baru.
-     */
-    public function create()
-    {
-        $this->resetInputFields(); 
-        $this->showFormModal = true; 
-    }
-
-    /**
-     * Inisialisasi modal untuk pengeditan data.
-     * Mengisi form dengan data existing dari database.
-     * @param int $id
-     */
-    public function edit($id)
-    {
-        $this->resetValidation();
-        $data = AssetModel::with(['category', 'manufacturer'])->findOrFail($id);
-
-        $this->assetModelId = $id; 
-        $this->name = $data->name;
-        $this->model_number = $data->model_number;
-        $this->category_id = $data->category_id;
-        $this->manufacturer_id = $data->manufacturer_id;
-        
-        $this->oldImage = $data->image;
-
-        $this->selectedCategoryName = $data->category->name ?? '';
-        $this->selectedManufacturerName = $data->manufacturer->name ?? '';
-
-        $this->isEditMode = true; 
-        $this->showFormModal = true;
-    }
-
-    /**
-     * Menyimpan data (Create atau Update).
-     * Menangani logika validasi, upload/hapus gambar fisik, dan persistensi database.
-     */
     public function store()
     {
         $this->validate();
@@ -283,113 +170,107 @@ class AssetModelManager extends Component
             'manufacturer_id' => $this->manufacturer_id,
         ];
 
-        // Logika Upload Gambar
+        // Logic Gambar
         if ($this->newImage) {
-            // Hapus gambar lama jika ada (saat update)
+            // Hapus gambar lama jika ada dan sedang mode edit
             if ($this->isEditMode && $this->oldImage) {
                 if(Storage::disk('public')->exists($this->oldImage)) {
                     Storage::disk('public')->delete($this->oldImage);
                 }
             }
-            
-            // Menggunakan helper compressAndStore alih-alih store biasa
+            // Upload gambar baru
             $data['image'] = $this->compressAndStore($this->newImage);
-
-        } else {
-            // Pertahankan gambar lama jika tidak ada upload baru saat update
-            if($this->isEditMode) {
-                $data['image'] = $this->oldImage;
-            }
         }
 
         if ($this->isEditMode && $this->assetModelId) {
             AssetModel::findOrFail($this->assetModelId)->update($data);
-            session()->flash('message', 'Data model aset berhasil diperbarui.');
+            $message = 'Data model aset berhasil diperbarui.';
         } else {
             AssetModel::create($data);
-            session()->flash('message', 'Data model aset berhasil ditambahkan.');
+            $message = 'Data model aset berhasil ditambahkan.';
         }
 
-        $this->closeModal();
+        session()->flash('message', $message);
+        $this->dispatch('close-all-modals');
+        $this->resetInputFields();
     }
 
-    /**
-     * Menampilkan modal konfirmasi hapus.
-     */
-    public function confirmDelete($id)
-    {
-        $this->assetModelId = $id;
-        $this->showDeleteModal = true;
-    }
-
-    /**
-     * Menghapus data secara permanen.
-     * Menghapus file gambar fisik terkait sebelum menghapus record database.
-     */
     public function delete()
     {
-        if ($this->assetModelId) {
-            try {
-                $model = AssetModel::findOrFail($this->assetModelId);
-                
-                if ($model->image) {
-                    Storage::disk('public')->delete($model->image);
-                }
+        if (!$this->assetModelId) return;
 
-                $model->delete();
-                session()->flash('message', 'Data model aset berhasil dihapus.');
-            } catch (\Exception $e) {
-                session()->flash('error', 'Gagal menghapus data. Data mungkin sedang digunakan pada aset lain.');
+        try {
+            $model = AssetModel::findOrFail($this->assetModelId);
+            
+            // Hapus file fisik gambar jika ada
+            if ($model->image && Storage::disk('public')->exists($model->image)) {
+                Storage::disk('public')->delete($model->image);
             }
-        }
-        $this->closeModal();
-    }
 
-    /**
-     * Menutup modal dan membersihkan state form.
-     */
-    public function closeModal()
-    {
-        $this->showFormModal = false;
-        $this->showDeleteModal = false;
+            $model->delete();
+            session()->flash('message', 'Data model aset berhasil dihapus.');
+
+        } catch (\Exception $e) {
+            session()->flash('error', 'Gagal menghapus data. Data mungkin sedang digunakan oleh aset lain.');
+        }
+
+        // Apapun hasilnya, tutup modal & reset
+        $this->dispatch('close-all-modals');
         $this->resetInputFields();
     }
 
     // ==========================================
-    // HELPERS (COMPRESSION)
+    // HELPERS
     // ==========================================
 
-    /**
-     * Mengompresi gambar dan menyimpannya ke storage publik.
-     * Menggunakan Intervention Image untuk resize dan optimasi JPEG.
-     *
-     * @param \Illuminate\Http\UploadedFile $file File gambar asli
-     * @return string Path relatif file yang disimpan
-     */
+    public function getCategoriesProperty()
+    {
+        return Category::query()
+            ->when($this->categorySearch, fn($q) => $q->where('name', 'like', '%' . $this->categorySearch . '%'))
+            ->limit(5)->get();
+    }
+
+    public function getManufacturersProperty()
+    {
+        return Manufacturer::query()
+            ->when($this->manufacturerSearch, fn($q) => $q->where('name', 'like', '%' . $this->manufacturerSearch . '%'))
+            ->limit(5)->get();
+    }
+
     protected function compressAndStore($file)
     {
         $filename = md5($file->getClientOriginalName() . microtime()) . '.jpg';
-        $path = 'asset-models/' . $filename; // Folder disesuaikan untuk modul ini
+        $path = 'asset-models/' . $filename; 
 
         try {
-            // Inisialisasi Image Manager (Driver GD)
             $manager = new ImageManager(new Driver());
             $image = $manager->read($file->getRealPath());
-            
-            // Resize (Scale Down) ke lebar maksimal 1200px
             $image->scaleDown(width: 1200);
-            
-            // Encode ke JPG kualitas 80%
             $encoded = $image->toJpeg(quality: 80);
-            
-            // Simpan ke disk
             Storage::disk('public')->put($path, $encoded);
-
         } catch (\Exception $e) {
-            // Fallback: Simpan file asli jika kompresi gagal
             $path = $file->storeAs('asset-models', $filename, 'public');
         }
 
         return $path;
+    }
+
+    public function render()
+    {
+        $assetModels = AssetModel::with(['category:id,name', 'manufacturer:id,name,image'])
+            ->when($this->search, function($q) {
+                $q->where(function($subQ) {
+                    $subQ->where('name', 'like', '%' . $this->search . '%') 
+                           ->orWhere('model_number', 'like', '%' . $this->search . '%')
+                           ->orWhereHas('manufacturer', fn($m) => $m->where('name', 'like', '%' . $this->search . '%'))
+                           ->orWhereHas('category', fn($c) => $c->where('name', 'like', '%' . $this->search . '%'));
+                });
+            })
+            ->latest() 
+            ->paginate(10); 
+
+        return view('livewire.admin.master.asset-model-manager', [
+            'assetModels' => $assetModels,
+        ]);
     }
 }

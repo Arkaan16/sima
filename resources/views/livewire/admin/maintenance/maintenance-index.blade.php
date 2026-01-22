@@ -1,4 +1,4 @@
-<div class="container mx-auto px-4 py-4">
+<div class="container mx-auto px-4">
     {{-- Header Section (Responsive Stack) --}}
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>

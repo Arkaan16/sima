@@ -10,21 +10,18 @@ return new class extends Migration
     {
         Schema::create('asset_models', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->index(); // Asset Model Name
-            $table->string('model_number')->nullable(); // Model No.
+            $table->string('name')->index();
+            $table->string('model_number')->nullable()->index(); 
             
-            // Relasi ke Categories
-            // Pastikan tabel categories sudah ada sebelum migrasi ini dijalankan
             $table->foreignId('category_id')
                   ->constrained('categories')
                   ->onDelete('cascade'); 
             
-            // Relasi ke Manufacturers
             $table->foreignId('manufacturer_id')
                   ->constrained('manufacturers')
-                  ->onDelete('cascade'); 
+                  ->onDelete('cascade');
 
-            $table->string('image')->nullable(); // Upload Image (Logo) - menyimpan path file
+            $table->string('image')->nullable();
             $table->timestamps();
         });
     }

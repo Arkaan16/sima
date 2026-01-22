@@ -1,9 +1,6 @@
-<div class="min-h-screen bg-slate-50 py-1 px-4 sm:px-6 lg:px-8 font-sans">
-    <div class="max-w-5xl mx-auto">
-        
-        {{-- Header Section --}}
-        <div class="text-center mb-8">
-            <h1 class="text-2xl font-extrabold text-slate-800">Ekspor Laporan</h1>
+<div class="container mx-auto px-4 max-w-5xl">
+    <div class="text-center mb-8">
+        <h1 class="text-2xl font-extrabold text-slate-800">Ekspor Laporan</h1>
             <p class="text-slate-500 text-sm mt-1">Unduh data pemeliharaan atau aset dalam format yang Anda butuhkan</p>
         </div>
 
