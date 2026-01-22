@@ -2,7 +2,7 @@
     WRAPPER UTAMA: 
     - Added 'overflow-x-hidden': Mencegah scroll horizontal jika ada elemen bandel.
 --}}
-<<div class="min-h-screen w-full font-sans text-gray-900 pb-20 overflow-x-hidden bg-gray-50">
+<div class="min-h-screen w-full font-sans text-gray-900 pb-20 overflow-x-hidden bg-gray-50">
     <div class="container mx-auto px-4 max-w-6xl">
         {{-- HEADER --}}
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">

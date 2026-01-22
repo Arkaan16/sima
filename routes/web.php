@@ -1,9 +1,10 @@
 <?php
 
-use App\Livewire\Admin\Dashboard;
-use App\Livewire\Admin\Scan\Scan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use App\Livewire\Admin\Dashboard as AdminDashboard; 
+use App\Livewire\Employee\Dashboard as EmployeeDashboard;
+use App\Livewire\Admin\Scan\Scan;
 use App\Livewire\Admin\Asset\AssetEdit;
 use App\Livewire\Admin\Asset\AssetShow;
 use App\Livewire\Admin\Asset\AssetIndex;
@@ -43,7 +44,7 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
 
     // Dashboard
-    Route::get('/dashboard', Dashboard::class)->name('dashboard');
+    Route::get('/dashboard', AdminDashboard::class)->name('dashboard');
 
     // User Management
     Route::get('/users', UserManager::class)->name('users');
@@ -93,9 +94,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
 // Employee Area
 Route::middleware(['auth', 'role:employee'])->prefix('employee')->name('employee.')->group(function () {
-    Route::get('/dashboard', function () {
-        return view('employee.dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', EmployeeDashboard::class)->name('dashboard');
 });
 
 require __DIR__.'/auth.php';
