@@ -1,4 +1,4 @@
-<div class="container mx-auto px-4 py-2 max-w-7xl">
+<div class="container mx-auto px-4 max-w-7xl">
     
     {{-- HEADER --}}
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
@@ -169,7 +169,7 @@
                         <td class="px-6 py-4 whitespace-nowrap">
                             @php
                                 $statusColor = match($asset->status->name ?? '') {
-                                    'Ready', 'Aktif', 'Tersedia' => 'bg-green-100 text-green-800',
+                                    'Ready', 'Aktif', 'Tersedia','Siap Di Deploy' => 'bg-green-100 text-green-800',
                                     'Rusak', 'Broken' => 'bg-red-100 text-red-800',
                                     'Maintenance', 'Perbaikan' => 'bg-yellow-100 text-yellow-800',
                                     'Dipinjam', 'Deployed' => 'bg-blue-100 text-blue-800',
@@ -196,7 +196,7 @@
                                 </a>
 
                                 {{-- Tombol Edit (HIJAU) --}}
-                                <a href="{{ route('admin.assets.edit', $asset->id) }}" 
+                                <a href="{{ route('admin.assets.edit', $asset->id) }}" wire:navigate
                                 class="text-green-600 hover:text-green-900 transition" 
                                 title="Edit Aset">
                                     {{-- Icon Solid Pensil --}}

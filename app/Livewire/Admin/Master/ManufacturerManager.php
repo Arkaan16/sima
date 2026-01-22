@@ -9,17 +9,10 @@ use Livewire\WithFileUploads;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Storage;
-
-// Import Library Kompresi
+use Illuminate\Validation\Rule;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 
-/**
- * Class ManufacturerManager
- * * Komponen Livewire untuk mengelola data master Pabrikan (Manufacturer).
- * Menyediakan fungsionalitas CRUD lengkap, validasi input URL/Email,
- * serta kompresi otomatis untuk logo pabrikan.
- */
 #[Layout('components.layouts.admin')]
 #[Title('Kelola Pabrikan')]
 class ManufacturerManager extends Component
@@ -30,28 +23,25 @@ class ManufacturerManager extends Component
     protected $paginationTheme = 'tailwind';
 
     // ==========================================
-    // DATA PROPERTIES
+    // PROPERTIES
     // ==========================================
 
-    /** @var int|null ID data yang sedang diproses */
     public $manufacturerId;
-
-    // Field Database sesuai Model Manufacturer
-    public $name;
-    public $url;
-    public $support_url;
-    public $support_phone;
-    public $support_email;
+    public $name = '';
+    public $url = '';
+    public $support_url = '';
+    public $support_phone = '';
+    public $support_email = '';
 
     // Image Handling
-    public $newImage; // Upload baru (Temporary)
-    public $oldImage; // Path gambar lama
+    public $newImage;
+    public $oldImage;
 
     // UI State
-    public $search = '';
-    public $showFormModal = false;
-    public $showDeleteModal = false;
     public $isEditMode = false;
+    public $deleteName = ''; // Untuk konfirmasi hapus
+
+    public $search = '';
 
     // ==========================================
     // VALIDATION RULES
@@ -61,16 +51,13 @@ class ManufacturerManager extends Component
     {
         return [
             'name' => [
-                'required', 
-                'string', 
-                'max:255', 
-                'unique:manufacturers,name,' . $this->manufacturerId
+                'required', 'string', 'max:255', 
+                Rule::unique('manufacturers', 'name')->ignore($this->manufacturerId)
             ],
             'url' => 'nullable|url|max:255',
             'support_url' => 'nullable|url|max:255',
-            'support_phone' => 'nullable|string|max:20',
+            'support_phone' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\(\)\s]*$/'],
             'support_email' => 'nullable|email|max:255',
-            // VALIDASI FOTO: Max 10MB (10240 KB)
             'newImage' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
         ];
     }
@@ -78,16 +65,160 @@ class ManufacturerManager extends Component
     protected $messages = [
         'name.required' => 'Nama pabrikan wajib diisi.',
         'name.unique' => 'Nama pabrikan ini sudah terdaftar.',
-        'url.url' => 'Format URL Website tidak valid (awali dengan http:// atau https://).',
+        'url.url' => 'Format URL Website tidak valid.',
         'support_url.url' => 'Format URL Support tidak valid.',
+        'support_phone.regex' => 'Nomor telepon hanya boleh berisi angka dan simbol (+ - ( )).',
         'support_email.email' => 'Format email tidak valid.',
         'newImage.max' => 'Ukuran gambar maksimal 10MB.',
         'newImage.image' => 'File harus berupa gambar.',
     ];
 
+    public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
     // ==========================================
-    // MAIN LOGIC
+    // ACTIONS (Server-Side Logic)
     // ==========================================
+
+    // 1. Persiapan Create
+    public function create()
+    {
+        $this->resetInputFields();
+        $this->dispatch('open-modal-form');
+    }
+
+    // 2. Persiapan Edit
+    public function edit($id)
+    {
+        $data = Manufacturer::find($id);
+        if (!$data) return;
+
+        $this->manufacturerId = $data->id;
+        $this->name = $data->name;
+        $this->url = $data->url;
+        $this->support_url = $data->support_url;
+        $this->support_phone = $data->support_phone;
+        $this->support_email = $data->support_email;
+        $this->oldImage = $data->image;
+        $this->newImage = null; // Reset upload baru
+
+        $this->isEditMode = true;
+        $this->resetValidation();
+
+        $this->dispatch('open-modal-form');
+    }
+
+    // 3. Persiapan Hapus
+    public function confirmDelete($id)
+    {
+        $data = Manufacturer::find($id);
+        if (!$data) return;
+
+        $this->manufacturerId = $data->id;
+        $this->deleteName = $data->name;
+
+        $this->dispatch('open-modal-delete');
+    }
+
+    public function resetInputFields()
+    {
+        $this->name = '';
+        $this->url = '';
+        $this->support_url = '';
+        $this->support_phone = '';
+        $this->support_email = '';
+        $this->newImage = null;
+        $this->oldImage = null;
+        
+        $this->manufacturerId = null;
+        $this->deleteName = '';
+        $this->isEditMode = false;
+        $this->resetErrorBag();
+        $this->resetValidation();
+    }
+
+    public function store()
+    {
+        $this->validate();
+
+        $data = [
+            'name' => $this->name,
+            'url' => $this->url,
+            'support_url' => $this->support_url,
+            'support_phone' => $this->support_phone,
+            'support_email' => $this->support_email,
+        ];
+
+        // Logic Image Upload
+        if ($this->newImage) {
+            if ($this->isEditMode && $this->oldImage) {
+                if(Storage::disk('public')->exists($this->oldImage)) {
+                    Storage::disk('public')->delete($this->oldImage);
+                }
+            }
+            $data['image'] = $this->compressAndStore($this->newImage);
+        }
+
+        if ($this->isEditMode && $this->manufacturerId) {
+            Manufacturer::findOrFail($this->manufacturerId)->update($data);
+            $message = 'Data pabrikan berhasil diperbarui.';
+        } else {
+            Manufacturer::create($data);
+            $message = 'Data pabrikan berhasil ditambahkan.';
+        }
+
+        session()->flash('message', $message);
+        
+        $this->dispatch('close-all-modals');
+        $this->resetInputFields();
+    }
+
+    public function delete()
+    {
+        if (!$this->manufacturerId) return;
+
+        try {
+            $data = Manufacturer::findOrFail($this->manufacturerId);
+            
+            if ($data->image && Storage::disk('public')->exists($data->image)) {
+                Storage::disk('public')->delete($data->image);
+            }
+
+            $data->delete();
+            session()->flash('message', 'Data pabrikan berhasil dihapus.');
+
+        } catch (\Exception $e) {
+            session()->flash('error', 'Gagal menghapus data. Kemungkinan data sedang digunakan pada Model Aset.');
+        }
+        
+        // Tutup modal apapun hasilnya
+        $this->dispatch('close-all-modals');
+        $this->resetInputFields();
+    }
+
+    // ==========================================
+    // HELPERS
+    // ==========================================
+
+    protected function compressAndStore($file)
+    {
+        $filename = md5($file->getClientOriginalName() . microtime()) . '.jpg';
+        $path = 'manufacturers/' . $filename; 
+
+        try {
+            $manager = new ImageManager(new Driver());
+            $image = $manager->read($file->getRealPath());
+            $image->scaleDown(width: 1200);
+            $encoded = $image->toJpeg(quality: 80);
+            Storage::disk('public')->put($path, $encoded);
+        } catch (\Exception $e) {
+            $path = $file->storeAs('manufacturers', $filename, 'public');
+        }
+
+        return $path;
+    }
 
     public function render()
     {
@@ -102,165 +233,5 @@ class ManufacturerManager extends Component
         return view('livewire.admin.master.manufacturer-manager', [
             'manufacturers' => $manufacturers
         ]);
-    }
-
-    // Reset Form
-    public function resetInputFields()
-    {
-        $this->name = '';
-        $this->url = '';
-        $this->support_url = '';
-        $this->support_phone = '';
-        $this->support_email = '';
-        
-        $this->newImage = null;
-        $this->oldImage = null;
-        
-        $this->manufacturerId = null;
-        $this->isEditMode = false;
-        $this->resetErrorBag();
-        $this->resetValidation();
-    }
-
-    // Buka Modal Tambah
-    public function create()
-    {
-        $this->resetInputFields();
-        $this->showFormModal = true;
-    }
-
-    // Buka Modal Edit
-    public function edit($id)
-    {
-        $this->resetValidation();
-        $data = Manufacturer::findOrFail($id);
-
-        $this->manufacturerId = $id;
-        $this->name = $data->name;
-        $this->url = $data->url;
-        $this->support_url = $data->support_url;
-        $this->support_phone = $data->support_phone;
-        $this->support_email = $data->support_email;
-        
-        $this->oldImage = $data->image;
-
-        $this->isEditMode = true;
-        $this->showFormModal = true;
-    }
-
-    // Simpan Data (Create/Update) dengan Kompresi
-    public function store()
-    {
-        $this->validate();
-
-        $data = [
-            'name' => $this->name,
-            'url' => $this->url,
-            'support_url' => $this->support_url,
-            'support_phone' => $this->support_phone,
-            'support_email' => $this->support_email,
-        ];
-
-        // --- LOGIKA UPLOAD & KOMPRESI ---
-        if ($this->newImage) {
-            // Hapus gambar lama jika mode edit
-            if ($this->isEditMode && $this->oldImage) {
-                if(Storage::disk('public')->exists($this->oldImage)) {
-                    Storage::disk('public')->delete($this->oldImage);
-                }
-            }
-            
-            // Simpan gambar baru dengan Kompresi Helper
-            $data['image'] = $this->compressAndStore($this->newImage);
-
-        } else {
-            // Jika tidak ada upload baru, pertahankan yang lama
-            if($this->isEditMode) {
-                $data['image'] = $this->oldImage;
-            }
-        }
-        // ---------------------------------
-
-        if ($this->isEditMode && $this->manufacturerId) {
-            Manufacturer::findOrFail($this->manufacturerId)->update($data);
-            session()->flash('message', 'Data pabrikan berhasil diperbarui.');
-        } else {
-            Manufacturer::create($data);
-            session()->flash('message', 'Data pabrikan berhasil ditambahkan.');
-        }
-
-        $this->closeModal();
-    }
-
-    public function confirmDelete($id)
-    {
-        $this->manufacturerId = $id;
-        $this->showDeleteModal = true;
-    }
-
-    public function delete()
-    {
-        if ($this->manufacturerId) {
-            try {
-                $data = Manufacturer::findOrFail($this->manufacturerId);
-                
-                // Hapus file fisik
-                if ($data->image && Storage::disk('public')->exists($data->image)) {
-                    Storage::disk('public')->delete($data->image);
-                }
-
-                $data->delete();
-                session()->flash('message', 'Data pabrikan berhasil dihapus.');
-            } catch (\Exception $e) {
-                session()->flash('error', 'Gagal menghapus data. Kemungkinan data sedang digunakan pada Model Aset.');
-            }
-        }
-        $this->closeModal();
-    }
-
-    public function closeModal()
-    {
-        $this->showFormModal = false;
-        $this->showDeleteModal = false;
-        $this->resetInputFields();
-    }
-
-    public function updatingSearch()
-    {
-        $this->resetPage();
-    }
-
-    // ==========================================
-    // HELPERS (COMPRESSION)
-    // ==========================================
-
-    /**
-     * Mengompresi gambar dan menyimpannya ke storage publik.
-     * Logika sama persis dengan AssetModelManager.
-     */
-    protected function compressAndStore($file)
-    {
-        $filename = md5($file->getClientOriginalName() . microtime()) . '.jpg';
-        // Folder penyimpanan khusus Manufacturers
-        $path = 'manufacturers/' . $filename; 
-
-        try {
-            $manager = new ImageManager(new Driver());
-            $image = $manager->read($file->getRealPath());
-            
-            // Resize (Scale Down) ke lebar maksimal 1200px
-            $image->scaleDown(width: 1200);
-            
-            // Encode ke JPG kualitas 80%
-            $encoded = $image->toJpeg(quality: 80);
-            
-            Storage::disk('public')->put($path, $encoded);
-
-        } catch (\Exception $e) {
-            // Fallback: Simpan file asli jika gagal
-            $path = $file->storeAs('manufacturers', $filename, 'public');
-        }
-
-        return $path;
     }
 }

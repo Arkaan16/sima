@@ -2,19 +2,12 @@
     WRAPPER UTAMA: 
     - Added 'overflow-x-hidden': Mencegah scroll horizontal jika ada elemen bandel.
 --}}
-<div class="min-h-screen w-full font-sans text-gray-900 pb-20 overflow-x-hidden bg-gray-50">
-
-    {{-- 
-        CONTAINER KONTEN: 
-        - Max-width disesuaikan.
-    --}}
-    <div class="container mx-auto px-4 py-1 md:py-8 max-w-6xl">
-
-        {{-- HEADER: Judul & Tombol Kembali --}}
+<<div class="min-h-screen w-full font-sans text-gray-900 pb-20 overflow-x-hidden bg-gray-50">
+    <div class="container mx-auto px-4 max-w-6xl">
+        {{-- HEADER --}}
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
             <div class="w-full md:w-auto">
-                {{-- Added 'break-words': Judul panjang akan turun baris, tidak nabrak --}}
-                <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight leading-tight break-words">
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight leading-tight break-words">
                     {{ $maintenance->title }}
                 </h1>
             </div>

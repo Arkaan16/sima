@@ -7,18 +7,8 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\Url;
 use Illuminate\Validation\Rule;
 
-/**
- * Class LocationManager
- *
- * Komponen Livewire untuk menangani manajemen data Master Lokasi (Gedung & Ruangan).
- * Mengelola operasi CRUD dengan dukungan hierarki parent-child (Gedung sebagai Parent,
- * Ruangan sebagai Child) serta validasi integritas data.
- *
- * @package App\Livewire\Admin\Master
- */
 #[Layout('components.layouts.admin')]
 #[Title('Kelola Lokasi')]
 class LocationManager extends Component
@@ -26,42 +16,19 @@ class LocationManager extends Component
     use WithPagination;
     protected $paginationTheme = 'tailwind';
 
-    // ==========================================
-    // PROPERTIES
-    // ==========================================
-
-    /** @var int|null Primary Key dari lokasi yang sedang diedit atau dihapus */
+    // Properties Data
     public $locationId;
-
-    /** @var string Nama lokasi (Model Binding) */
-    public $name;
-
-    /** @var int|null Foreign Key untuk lokasi induk (Gedung) */
+    public $name = '';
     public $parent_location_id = null;
-
-    // --- Dropdown Search State ---
+    
+    // Properties UI & Search
+    public $isEditMode = false;
+    public $deleteName = ''; 
+    public $search = '';
     public $parentSearch = '';
     public $selectedParentName = '';
 
-    /** @var string Kata kunci pencarian global pada tabel */
-    #[Url(except: '')]
-    public $search = '';
-
-    // --- UI State Flags ---
-    public $showFormModal = false;
-    public $showDeleteModal = false;
-    public $isEditMode = false;
-
-    // ==========================================
-    // VALIDATION
-    // ==========================================
-
-    /**
-     * Mendefinisikan aturan validasi input.
-     * Memastikan nama lokasi unik dalam lingkup parent yang sama.
-     *
-     * @return array
-     */
+    // Validation Rules
     protected function rules()
     {
         return [
@@ -75,34 +42,130 @@ class LocationManager extends Component
         ];
     }
 
-    /**
-     * Menyediakan pesan error kustom untuk validasi.
-     *
-     * @var array
-     */
-    protected $messages = [
-        'name.required' => 'Nama lokasi/ruangan wajib diisi.',
-        'name.unique' => 'Nama ruangan ini sudah ada di Gedung tersebut.',
-    ];
-
-    // ==========================================
-    // RENDER & SEARCH LOGIC
-    // ==========================================
-
-    /**
-     * Hook lifecycle: Mereset pagination saat kata kunci pencarian berubah.
-     */
     public function updatingSearch()
     {
         $this->resetPage();
     }
 
-    /**
-     * Computed Property: Mengambil daftar kandidat Parent (Gedung).
-     * Memfilter hanya lokasi level root untuk mencegah hierarki bertingkat dalam.
-     *
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
+    // --- ACTIONS ---
+
+    // 1. Tombol Tambah Ditekan
+    public function create()
+    {
+        $this->resetInputFields();
+        // Kirim perintah ke browser: Buka Modal Form, Tutup yang lain
+        $this->dispatch('open-modal-form'); 
+    }
+
+    // 2. Tombol Edit Ditekan
+    public function edit($id)
+    {
+        $loc = Location::with('parent')->find($id);
+        if (!$loc) return;
+
+        $this->locationId = $loc->id;
+        $this->name = $loc->name;
+        $this->parent_location_id = $loc->parent_location_id;
+        $this->selectedParentName = $loc->parent ? $loc->parent->name : '';
+        $this->isEditMode = true;
+        
+        $this->resetValidation();
+        // Kirim perintah ke browser: Buka Modal Form
+        $this->dispatch('open-modal-form');
+    }
+
+    // 3. Tombol Hapus Ditekan (Konfirmasi)
+    public function confirmDelete($id)
+    {
+        $loc = Location::find($id);
+        if (!$loc) return;
+
+        $this->locationId = $loc->id;
+        $this->deleteName = $loc->name;
+        
+        // Kirim perintah ke browser: Buka Modal Delete
+        $this->dispatch('open-modal-delete');
+    }
+
+    // 4. Proses Simpan
+    public function store()
+    {
+        $this->validate();
+
+        // Validasi parent ke diri sendiri
+        if ($this->isEditMode && $this->locationId == $this->parent_location_id) {
+             $this->addError('parent_location_id', 'Lokasi tidak bisa menjadi induk bagi dirinya sendiri.');
+             return;
+        }
+
+        $data = [
+            'name' => $this->name,
+            'parent_location_id' => $this->parent_location_id ?: null,
+        ];
+
+        if ($this->isEditMode && $this->locationId) {
+            Location::findOrFail($this->locationId)->update($data);
+            $message = 'Data lokasi berhasil diperbarui.';
+        } else {
+            Location::create($data);
+            $message = 'Data lokasi berhasil ditambahkan.';
+        }
+        
+        session()->flash('message', $message);
+        
+        $this->resetInputFields();
+        $this->dispatch('close-all-modals'); // Tutup semua modal
+    }
+
+    // 5. Proses Delete
+    public function delete()
+    {
+        // 1. Cek jika ID tidak ada
+        if (!$this->locationId) return;
+
+        try {
+            $loc = Location::findOrFail($this->locationId);
+            
+            // 2. Cek Validasi Child (Business Logic)
+            if ($loc->children()->count() > 0) {
+                // CASE: GAGAL (Masih ada child)
+                // Set flash message error
+                session()->flash('error', 'Gagal! Gedung ini masih memiliki ruangan di dalamnya.');
+                
+                // PENTING: Kita TIDAK melakukan return di sini lagi.
+                // Biarkan kode lanjut ke bawah untuk menutup modal.
+            } else {
+                // CASE: SUKSES (Aman dihapus)
+                $loc->delete();
+                session()->flash('message', 'Lokasi berhasil dihapus.');
+            }
+
+        } catch (\Exception $e) {
+            // CASE: ERROR DATABASE (Foreign Key / System Error)
+            session()->flash('error', 'Gagal menghapus. Data sedang digunakan atau terkait data lain.');
+        }
+
+        // 3. FINAL STEP (Dijalankan baik SUKSES maupun GAGAL)
+        // Tutup modal Delete
+        $this->dispatch('close-all-modals');
+        
+        // Bersihkan state (ID dan Nama direset agar tidak nyangkut)
+        $this->resetInputFields();
+    }
+
+    public function resetInputFields()
+    {
+        $this->name = '';
+        $this->locationId = null;
+        $this->parent_location_id = null;
+        $this->parentSearch = '';
+        $this->selectedParentName = '';
+        $this->deleteName = '';
+        $this->isEditMode = false;
+        $this->resetErrorBag();
+        $this->resetValidation();
+    }
+
     public function getParentsProperty()
     {
         return Location::query()
@@ -112,183 +175,23 @@ class LocationManager extends Component
             ->get();
     }
 
-    /**
-     * Mengatur state saat user memilih parent dari dropdown.
-     *
-     * @param int $id
-     * @param string $name
-     */
-    public function selectParent($id, $name)
-    {
-        $this->parent_location_id = $id;
-        $this->selectedParentName = $name;
-        $this->parentSearch = '';
-    }
-
-    /**
-     * Menghapus pilihan parent (menjadikan lokasi sebagai Root/Gedung).
-     */
-    public function clearParent()
-    {
-        $this->parent_location_id = null;
-        $this->selectedParentName = '';
-        $this->parentSearch = '';
-    }
-
-    /**
-     * Merender tampilan komponen utama.
-     *
-     * @return \Illuminate\View\View
-     */
     public function render()
     {
-        // 1. Inisialisasi Query Builder
-        $locations = Location::with('parent')
-            // 2. Terapkan filter pencarian (Nama Lokasi atau Nama Parent)
+        $locations = Location::query()
+            ->select('locations.*')
+            ->with('parent')
+            ->leftJoin('locations as parent_table', 'locations.parent_location_id', '=', 'parent_table.id')
             ->when($this->search, function($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhereHas('parent', fn($s) => $s->where('name', 'like', '%' . $this->search . '%'));
+                $q->where('locations.name', 'like', '%' . $this->search . '%')
+                  ->orWhere('parent_table.name', 'like', '%' . $this->search . '%');
             })
-            // 3. Urutkan agar Child tampil berdekatan dengan Parent-nya
-            ->orderByRaw('COALESCE(parent_location_id, id), id')
-            // 4. Eksekusi Pagination
+            ->orderByRaw('COALESCE(parent_table.name, locations.name) ASC')
+            ->orderByRaw('CASE WHEN locations.parent_location_id IS NULL THEN 0 ELSE 1 END ASC')
+            ->orderBy('locations.name', 'asc')
             ->paginate(10);
 
         return view('livewire.admin.master.location-manager', [
             'locations' => $locations
         ]);
-    }
-
-    // ==========================================
-    // CRUD LOGIC
-    // ==========================================
-
-    /**
-     * Mengembalikan seluruh state form ke nilai default.
-     */
-    public function resetInputFields()
-    {
-        $this->name = '';
-        $this->locationId = null;
-        $this->parent_location_id = null;
-        $this->parentSearch = '';
-        $this->selectedParentName = '';
-        $this->isEditMode = false;
-        $this->resetErrorBag();
-        $this->resetValidation();
-    }
-
-    /**
-     * Membuka modal untuk pembuatan data baru.
-     */
-    public function create()
-    {
-        $this->resetInputFields();
-        $this->showFormModal = true;
-    }
-
-    /**
-     * Membuka modal edit dan mengisi form dengan data yang ada.
-     *
-     * @param int $id
-     */
-    public function edit($id)
-    {
-        $this->resetValidation();
-        
-        // 1. Ambil data dari database
-        $loc = Location::with('parent')->findOrFail($id);
-
-        // 2. Isi state properti
-        $this->locationId = $id;
-        $this->name = $loc->name;
-        $this->parent_location_id = $loc->parent_location_id;
-        $this->selectedParentName = $loc->parent ? $loc->parent->name : '';
-
-        // 3. Tampilkan modal
-        $this->isEditMode = true;
-        $this->showFormModal = true;
-    }
-
-    /**
-     * Menangani proses penyimpanan data (Create & Update).
-     */
-    public function store()
-    {
-        // 1. Validasi Input sesuai rules()
-        $this->validate();
-
-        // 2. Cek Logika Bisnis: Validasi hierarki (Self-parenting check)
-        if ($this->isEditMode && $this->locationId == $this->parent_location_id) {
-             $this->addError('parent_location_id', 'Lokasi tidak bisa menjadi induk bagi dirinya sendiri.');
-             return;
-        }
-
-        // 3. Persiapkan payload data
-        $data = [
-            'name' => $this->name,
-            'parent_location_id' => $this->parent_location_id ?: null,
-        ];
-
-        // 4. Eksekusi Simpan ke Database
-        if ($this->isEditMode && $this->locationId) {
-            Location::findOrFail($this->locationId)->update($data);
-            session()->flash('message', 'Data lokasi berhasil diperbarui.');
-        } else {
-            Location::create($data);
-            session()->flash('message', 'Data lokasi berhasil ditambahkan.');
-        }
-        
-        // 5. Tutup modal dan bersihkan state
-        $this->closeModal();
-    }
-
-    /**
-     * Menampilkan konfirmasi sebelum menghapus data.
-     *
-     * @param int $id
-     */
-    public function confirmDelete($id)
-    {
-        $this->locationId = $id;
-        $this->showDeleteModal = true;
-    }
-
-    /**
-     * Mengeksekusi penghapusan data dari database.
-     */
-    public function delete()
-    {
-        if ($this->locationId) {
-            try {
-                // 1. Cari data berdasarkan ID
-                $loc = Location::findOrFail($this->locationId);
-                
-                // 2. Cek Logika Bisnis: Validasi ketergantungan (Child nodes)
-                if ($loc->children()->count() > 0) {
-                    session()->flash('error', 'Gagal! Gedung ini masih memiliki ruangan di dalamnya.');
-                } else {
-                    // 3. Hapus data jika aman
-                    $loc->delete();
-                    session()->flash('message', 'Lokasi berhasil dihapus.');
-                }
-            } catch (\Exception $e) {
-                // 4. Tangani error constraint database (Foreign Key)
-                session()->flash('error', 'Gagal menghapus. Lokasi sedang digunakan data aset.');
-            }
-        }
-        
-        // 5. Tutup modal
-        $this->closeModal();
-    }
-
-    /**
-     * Menutup semua modal aktif dan mereset form.
-     */
-    public function closeModal()
-    {
-        $this->showFormModal = false;
-        $this->showDeleteModal = false;
-        $this->resetInputFields();
     }
 }

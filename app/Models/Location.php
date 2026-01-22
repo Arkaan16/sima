@@ -66,6 +66,16 @@ class Location extends Model
     }
 
     /**
+     * [TAMBAHAN UNTUK FITUR DASHBOARD]
+     * Alias standar untuk relasi ke aset. 
+     * Diperlukan untuk mengatasi error "Call to undefined method... assets()".
+     */
+    public function assets(): HasMany
+    {
+        return $this->hasMany(Asset::class, 'location_id');
+    }
+
+    /**
      * Mendapatkan daftar aset yang saat ini sedang ditugaskan atau berada secara fisik di lokasi ini.
      * Menggunakan mekanisme Polymorphic Relationship (assigned_to), di mana aset bisa
      * ditugaskan ke User, Employee, atau Location.
