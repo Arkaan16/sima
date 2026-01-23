@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\Admin\Dashboard as AdminDashboard; 
-use App\Livewire\Employee\Dashboard as EmployeeDashboard;
 use App\Livewire\Admin\Scan\Scan;
 use App\Livewire\Admin\Asset\AssetEdit;
 use App\Livewire\Admin\Asset\AssetShow;
@@ -23,6 +22,9 @@ use App\Livewire\Admin\Maintenance\MaintenanceEdit;
 use App\Livewire\Admin\Maintenance\MaintenanceShow;
 use App\Livewire\Admin\Maintenance\MaintenanceIndex;
 use App\Livewire\Admin\Maintenance\MaintenanceCreate;
+use App\Livewire\Employee\Dashboard as EmployeeDashboard;
+use App\Livewire\Employee\Asset\AssetIndex as EmployeeAssetIndex;
+use App\Livewire\Employee\Asset\AssetShow as EmployeeAssetShow;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -95,6 +97,15 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 // Employee Area
 Route::middleware(['auth', 'role:employee'])->prefix('employee')->name('employee.')->group(function () {
     Route::get('/dashboard', EmployeeDashboard::class)->name('dashboard');
+
+    // Group Assets (READ ONLY)
+    Route::prefix('assets')->name('assets.')->group(function () {
+        Route::get('/', EmployeeAssetIndex::class)->name('index');
+        
+        // Menggunakan binding {asset:asset_tag} agar URL-nya cantik (misal: /assets/TAG-001)
+        // Pastikan Anda nanti membuat EmployeeAssetShow juga jika belum.
+        Route::get('/{asset:asset_tag}', EmployeeAssetShow::class)->name('show');
+    });
 });
 
 require __DIR__.'/auth.php';
