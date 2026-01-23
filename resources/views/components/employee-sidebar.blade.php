@@ -66,11 +66,14 @@
                 <span class="font-medium">Aset</span>
             </a>
 
-            {{-- PINDAI QR (Route #) --}}
-            <a href="#" 
+            {{-- PINDAI QR --}}
+            <a href="{{ route('employee.scan') }}" 
                @click="sessionStorage.setItem('sidebarScrollPos', $el.closest('.overflow-y-auto').scrollTop)"
-               class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                <svg class="w-5 h-5 text-gray-400 group-hover:text-gray-500" 
+               class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group"
+               :class="window.location.href.includes('scan') ? 'bg-gray-100 text-indigo-600 font-semibold' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'">
+               
+                <svg class="w-5 h-5 group-hover:text-gray-500" 
+                     :class="window.location.href.includes('scan') ? 'text-indigo-600' : 'text-gray-400'"
                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                 </svg>

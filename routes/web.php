@@ -25,6 +25,7 @@ use App\Livewire\Admin\Maintenance\MaintenanceCreate;
 use App\Livewire\Employee\Dashboard as EmployeeDashboard;
 use App\Livewire\Employee\Asset\AssetIndex as EmployeeAssetIndex;
 use App\Livewire\Employee\Asset\AssetShow as EmployeeAssetShow;
+use App\Livewire\Employee\Scan\Scan as EmployeeScan;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -96,7 +97,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
 // Employee Area
 Route::middleware(['auth', 'role:employee'])->prefix('employee')->name('employee.')->group(function () {
+    
     Route::get('/dashboard', EmployeeDashboard::class)->name('dashboard');
+
+    // Route Scan
+    Route::get('/scan', EmployeeScan::class)->name('scan');
 
     // Group Assets (READ ONLY)
     Route::prefix('assets')->name('assets.')->group(function () {
