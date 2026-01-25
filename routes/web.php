@@ -30,6 +30,7 @@ use App\Livewire\Employee\Maintenance\MaintenanceIndex as EmployeeMaintenanceInd
 use App\Livewire\Employee\Maintenance\MaintenanceCreate as EmployeeMaintenanceCreate;
 use App\Livewire\Employee\Maintenance\MaintenanceShow as EmployeeMaintenanceShow;
 use App\Livewire\Employee\Maintenance\MaintenanceEdit as EmployeeMaintenanceEdit;
+use App\Livewire\Employee\Report\ExportReport as EmployeeExportReport;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -127,6 +128,8 @@ Route::middleware(['auth', 'role:employee'])->prefix('employee')->name('employee
         // // 4. Halaman Edit
         Route::get('/{maintenance}/edit', EmployeeMaintenanceEdit::class)->name('edit');
     });
+
+    Route::get('/reports', EmployeeExportReport::class)->name('reports');
 });
 
 require __DIR__.'/auth.php';
