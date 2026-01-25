@@ -29,8 +29,46 @@
                     Kembali
                 </a>
 
-                {{-- [DIHAPUS] Tombol Edit Aset --}}
             </div>
+        </div>
+
+        {{-- FLASH MESSAGES (Success & Error) --}}
+        <div>
+            {{-- SUKSES --}}
+            @if (session()->has('success'))
+                <div 
+                    x-data="{ show: true }" 
+                    x-init="setTimeout(() => show = false, 1500)" 
+                    x-show="show" 
+                    x-transition:leave="transition ease-in duration-300"
+                    x-transition:leave-start="opacity-100"
+                    x-transition:leave-end="opacity-0"
+                    class="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-sm flex items-center"
+                >
+                    <svg class="w-6 h-6 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <p class="text-green-700 font-medium text-sm md:text-base">{{ session('success') }}</p>
+                </div>
+            @endif
+
+            {{-- ERROR --}}
+            @if (session()->has('error'))
+                <div 
+                    x-data="{ show: true }" 
+                    x-init="setTimeout(() => show = false, 1500)" 
+                    x-show="show" 
+                    x-transition:leave="transition ease-in duration-300"
+                    x-transition:leave-start="opacity-100"
+                    x-transition:leave-end="opacity-0"
+                    class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg shadow-sm flex items-center"
+                >
+                    <svg class="w-6 h-6 text-red-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p class="text-red-700 font-medium text-sm md:text-base">{{ session('error') }}</p>
+                </div>
+            @endif
         </div>
 
         {{-- BAGIAN 2: NAVIGASI TAB --}}
@@ -359,10 +397,10 @@
 
         {{-- ================= TAB 2: RIWAYAT PEMELIHARAAN ================= --}}
         <div x-show="activeTab === 'history'" 
-             x-transition:enter="transition ease-out duration-200"
-             x-transition:enter-start="opacity-0 translate-y-1"
-             x-transition:enter-end="opacity-100 translate-y-0"
-             style="display: none;">
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 translate-y-1"
+            x-transition:enter-end="opacity-100 translate-y-0"
+            style="display: none;">
             
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 
@@ -372,15 +410,18 @@
                     <div>
                         <h2 class="text-lg font-bold text-gray-900">Daftar Aktivitas Pemeliharaan</h2>
                         <p class="text-sm text-gray-500 mt-1">
-                            Total: <span class="font-medium text-gray-900">{{ $asset->maintenances->count() }}</span> catatan.
+                            {{-- UPDATE: Gunakan ->total() untuk melihat total seluruh data di DB, bukan hanya di page ini --}}
+                            Total: <span class="font-medium text-gray-900">{{ $maintenances->total() }}</span> catatan.
                         </p>
                     </div>
 
-                    {{-- [DIKEMBALIKAN] Tombol Tambah Data Baru --}}
-                    {{-- Pastikan route 'employee.maintenances.create' sudah dibuat di web.php {{ route('employee.maintenances.create', ['asset_tag' => $asset->asset_tag]) }} --}}
-                    <a href="#" 
-                       wire:navigate
-                       class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition shadow-sm w-full sm:w-auto">
+                    {{-- Tombol Tambah Data Baru --}}
+                    <a href="{{ route('employee.maintenances.create', [
+                            'asset_tag' => $asset->asset_tag, 
+                            'from'      => 'asset'  // <--- TAMBAHAN PENTING
+                        ]) }}" 
+                        wire:navigate
+                        class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition shadow-sm w-full sm:w-auto">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>
@@ -388,7 +429,8 @@
                     </a>
                 </div>
 
-                @if($asset->maintenances->count() > 0)
+                {{-- UPDATE: Cek apakah ada data menggunakan variabel paginasi --}}
+                @if($maintenances->count() > 0)
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
@@ -401,7 +443,8 @@
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                @foreach($asset->maintenances as $maintenance)
+                                {{-- UPDATE PENTING: Loop variabel $maintenances agar urutan & paginasi dari controller berfungsi --}}
+                                @foreach($maintenances as $maintenance)
                                     <tr class="hover:bg-gray-50 transition duration-150 ease-in-out">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             <div class="flex items-center">
@@ -433,12 +476,16 @@
                                                 <span class="text-gray-400 italic text-xs">- Tidak ada teknisi -</span>
                                             @endif
                                         </td>
-                                        {{-- Kolom Aksi (Hanya Lihat Detail) --}}
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            {{-- Link ke Detail Maintenance Employee {{ route('employee.maintenances.show', ['maintenance' => $maintenance->id]) }}--}}
-                                            <a href="#" 
-                                               wire:navigate 
-                                               class="inline-flex items-center text-blue-600 hover:text-blue-900 transition-colors group">
+                                        {{-- Kolom Aksi --}}
+                                       <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <a href="{{ route('employee.maintenances.show', [
+                                                    'maintenance' => $maintenance->id, 
+                                                    'from'        => 'asset', 
+                                                    'asset_tag'   => $asset->asset_tag
+                                            ]) }}" 
+                                            wire:navigate 
+                                            class="inline-flex items-center text-blue-600 hover:text-blue-900 transition-colors group">
+                                                
                                                 <span class="group-hover:underline">Lihat Detail</span>
                                                 <svg class="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -450,10 +497,13 @@
                             </tbody>
                         </table>
                     </div>
+                    
+                    {{-- Pagination Links --}}
                     <div class="px-6 py-4 border-t border-gray-200">
                         {{ $maintenances->links() }}
                     </div>
                 @else
+                    {{-- Empty State --}}
                     <div class="flex flex-col items-center justify-center py-16 text-center px-4">
                         <div class="bg-gray-50 rounded-full p-6 mb-4 ring-1 ring-gray-100">
                             <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
