@@ -95,11 +95,15 @@
                 <span class="font-medium">Pemeliharaan</span>
             </a>
 
-            {{-- LAPORAN (Route #) --}}
-            <a href="#"
+            {{-- LAPORAN --}}
+            <a href="{{ route('employee.reports') }}" wire:navigate
                @click="sessionStorage.setItem('sidebarScrollPos', $el.closest('.overflow-y-auto').scrollTop)"
-               class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                <svg class="w-5 h-5 text-gray-400 group-hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group"
+               :class="window.location.href.includes('reports') ? 'bg-gray-100 text-indigo-600 font-semibold' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'">
+               
+                <svg class="w-5 h-5 group-hover:text-gray-500" 
+                     :class="window.location.href.includes('reports') ? 'text-indigo-600' : 'text-gray-400'"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <span class="font-medium">Laporan</span>
