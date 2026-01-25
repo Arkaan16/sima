@@ -26,6 +26,10 @@ use App\Livewire\Employee\Dashboard as EmployeeDashboard;
 use App\Livewire\Employee\Asset\AssetIndex as EmployeeAssetIndex;
 use App\Livewire\Employee\Asset\AssetShow as EmployeeAssetShow;
 use App\Livewire\Employee\Scan\Scan as EmployeeScan;
+use App\Livewire\Employee\Maintenance\MaintenanceIndex as EmployeeMaintenanceIndex;
+use App\Livewire\Employee\Maintenance\MaintenanceCreate as EmployeeMaintenanceCreate;
+use App\Livewire\Employee\Maintenance\MaintenanceShow as EmployeeMaintenanceShow;
+use App\Livewire\Employee\Maintenance\MaintenanceEdit as EmployeeMaintenanceEdit;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -105,11 +109,23 @@ Route::middleware(['auth', 'role:employee'])->prefix('employee')->name('employee
 
     // Group Assets (READ ONLY)
     Route::prefix('assets')->name('assets.')->group(function () {
-        Route::get('/', EmployeeAssetIndex::class)->name('index');
-        
-        // Menggunakan binding {asset:asset_tag} agar URL-nya cantik (misal: /assets/TAG-001)
-        // Pastikan Anda nanti membuat EmployeeAssetShow juga jika belum.
+        Route::get('/', EmployeeAssetIndex::class)->name('index');    
         Route::get('/{asset:asset_tag}', EmployeeAssetShow::class)->name('show');
+    });
+
+    Route::prefix('maintenances')->name('maintenances.')->group(function () {
+        // 1. Halaman Index
+        Route::get('/', EmployeeMaintenanceIndex::class)->name('index');
+        
+        // 2. Halaman Create (WAJIB sebelum show/edit)
+        Route::get('/create', EmployeeMaintenanceCreate::class)->name('create');
+        
+        // // 3. Halaman Show (Detail)
+        // // Menggunakan {maintenance} agar otomatis connect ke model di Livewire (Route Model Binding)
+        Route::get('/{maintenance}', EmployeeMaintenanceShow::class)->name('show');
+        
+        // // 4. Halaman Edit
+        Route::get('/{maintenance}/edit', EmployeeMaintenanceEdit::class)->name('edit');
     });
 });
 

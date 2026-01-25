@@ -13,21 +13,9 @@ use Illuminate\Validation\ValidationException;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 
-/**
- * Class MaintenanceForm
- *
- * Objek Form Livewire yang menangani logika bisnis untuk modul Pemeliharaan (Maintenance).
- * Mencakup validasi input, manajemen transaksi database, pengelolaan relasi teknisi,
- * serta pemrosesan dan kompresi gambar bukti pemeliharaan.
- *
- * @package App\Livewire\Forms
- */
 class MaintenanceForm extends Form
 {
-    // ==========================================
     // PROPERTIES
-    // ==========================================
-    
     public $asset_id = '';
     public $title = '';
     public $description = '';
@@ -35,21 +23,10 @@ class MaintenanceForm extends Form
     public $execution_date = '';
     public $selected_technicians = [];
     
-    /** @var Maintenance|null Instance model untuk mode edit */
     public ?Maintenance $maintenance = null;
-    
-    /** @var array Koleksi file foto sementara (upload) */
     public $photos = [];
 
-    // ==========================================
-    // VALIDATION RULES & MESSAGES
-    // ==========================================
-
-    /**
-     * Mendefinisikan aturan validasi dasar untuk form.
-     *
-     * @return array
-     */
+    // VALIDATION RULES
     public function rules()
     {
         return [
@@ -64,11 +41,6 @@ class MaintenanceForm extends Form
         ];
     }
 
-    /**
-     * Menyediakan pesan error kustom dalam Bahasa Indonesia.
-     *
-     * @return array
-     */
     public function messages()
     {
         return [
@@ -87,16 +59,6 @@ class MaintenanceForm extends Form
         ];
     }
 
-    // ==========================================
-    // INITIALIZATION (EDIT MODE)
-    // ==========================================
-
-    /**
-     * Mengisi properti form berdasarkan data pemeliharaan yang ada.
-     * Digunakan untuk inisialisasi halaman Edit.
-     *
-     * @param Maintenance $maintenance
-     */
     public function setMaintenance(Maintenance $maintenance)
     {
         $this->maintenance = $maintenance;
@@ -113,50 +75,33 @@ class MaintenanceForm extends Form
         $this->selected_technicians = $maintenance->technicians->pluck('id')->map(fn($id) => (string) $id)->toArray();
     }
 
-    // ==========================================
-    // BUSINESS LOGIC: STORE
-    // ==========================================
-
-    /**
-     * Menyimpan data pemeliharaan baru ke database.
-     * Menangani transaksi database untuk integritas data antara record utama,
-     * relasi teknisi, dan file gambar.
-     *
-     * @throws \Exception Jika terjadi kesalahan saat transaksi.
-     */
     public function store()
     {
-        // 1. Validasi Khusus: Pastikan ada foto saat pembuatan baru (Min 1, Max 3)
-        $this->validate([
-            'photos' => 'required|array|min:1|max:3',
-        ]);
-
-        // 2. Validasi Atribut Input Lainnya
-        $this->validate();
+        // FIX: Gabungkan validasi foto dan form standar
+        // Kita ambil rules dasar, lalu timpa rules 'photos' agar required saat CREATE
+        $rules = $this->rules();
+        $rules['photos'] = 'required|array|min:1|max:3';
+        
+        // Jalankan validasi SEKALIGUS agar semua error muncul
+        $this->validate($rules);
 
         try {
             DB::transaction(function () {
                 
-                // 3. Simpan Data Utama Pemeliharaan
                 $maintenance = Maintenance::create(
                     $this->except(['photos', 'selected_technicians', 'maintenance'])
                 );
 
-                // 4. Hubungkan Relasi Teknisi (Many-to-Many)
                 $maintenance->technicians()->attach($this->selected_technicians);
 
-                // 5. Proses Penyimpanan Foto
                 if (!empty($this->photos)) {
-                    // Buat direktori jika belum ada
                     if(!Storage::disk('public')->exists('maintenance-photos')) {
                         Storage::disk('public')->makeDirectory('maintenance-photos');
                     }
 
                     foreach ($this->photos as $photo) {
-                        // Kompresi dan simpan fisik file
                         $path = $this->compressAndStore($photo);
 
-                        // Simpan referensi path ke database
                         MaintenanceImage::create([
                             'maintenance_id' => $maintenance->id,
                             'photo_path' => $path,
@@ -165,41 +110,23 @@ class MaintenanceForm extends Form
                 }
             });
             
-            // 6. Reset state form setelah berhasil
-            $this->reset();
 
         } catch (\Exception $e) {
             throw $e; 
         }
     }
 
-    // ==========================================
-    // BUSINESS LOGIC: UPDATE
-    // ==========================================
-
-    /**
-     * Memperbarui data pemeliharaan yang sudah ada.
-     * Menangani logika kompleks untuk validasi jumlah foto (gabungan foto lama dan baru)
-     * serta penghapusan fisik file foto lama.
-     *
-     * @param array $photosToDelete Daftar ID foto lama yang akan dihapus.
-     * @throws ValidationException Jika jumlah total foto tidak memenuhi syarat.
-     * @throws \Exception Jika terjadi kesalahan sistem.
-     */
     public function update(array $photosToDelete = [])
     {
-        // 1. Validasi Atribut Input Teks
         $this->validate();
 
-        // 2. Logika Validasi Foto: Hitung sisa foto setelah penghapusan + foto baru
         $existingCount = $this->maintenance->images()
-            ->whereNotIn('id', $photosToDelete) // Abaikan foto yang ditandai hapus
+            ->whereNotIn('id', $photosToDelete)
             ->count();
             
         $newCount = count($this->photos);
         $totalPhotos = $existingCount + $newCount;
 
-        // 3. Pengecekan Batasan Jumlah Foto
         if ($totalPhotos < 1) {
             throw ValidationException::withMessages([
                 'photos' => 'Harus ada minimal 1 foto dokumentasi (Foto lama atau baru).',
@@ -214,31 +141,25 @@ class MaintenanceForm extends Form
 
         try {
             DB::transaction(function () use ($photosToDelete) {
-                // 4. Update Data Utama Record
                 $this->maintenance->update(
                     $this->except(['photos', 'selected_technicians', 'maintenance', 'asset_id'])
                 );
 
-                // 5. Sinkronisasi Data Teknisi (Hapus yang tidak dipilih, tambah yang baru)
                 $this->maintenance->technicians()->sync($this->selected_technicians);
 
-                // 6. Proses Penghapusan Foto Lama
                 if (!empty($photosToDelete)) {
                     $imagesToDelete = $this->maintenance->images()
                         ->whereIn('id', $photosToDelete)
                         ->get();
 
                     foreach ($imagesToDelete as $img) {
-                        // Hapus file fisik dari storage
                         if ($img->photo_path && Storage::disk('public')->exists($img->photo_path)) {
                             Storage::disk('public')->delete($img->photo_path);
                         }
-                        // Hapus record database
                         $img->delete();
                     }
                 }
 
-                // 7. Proses Penyimpanan Foto Baru (Jika ada)
                 if (!empty($this->photos)) {
                     if(!Storage::disk('public')->exists('maintenance-photos')) {
                         Storage::disk('public')->makeDirectory('maintenance-photos');
@@ -254,7 +175,6 @@ class MaintenanceForm extends Form
                 }
             });
             
-            // 8. Bersihkan buffer foto baru
             $this->photos = [];
             
         } catch (\Exception $e) {
@@ -262,76 +182,37 @@ class MaintenanceForm extends Form
         }
     }
 
-    // ==========================================
-    // IMAGE MANAGEMENT ACTIONS
-    // ==========================================
-
-    /**
-     * Menghapus satu foto spesifik secara langsung (biasanya via aksi klik di UI).
-     *
-     * @param int $imageId ID dari MaintenanceImage
-     */
     public function deleteExistingImage($imageId)
     {
         $image = MaintenanceImage::find($imageId);
         
-        // Pastikan gambar ada dan milik maintenance yang sedang diedit (Security Check)
         if ($image && $image->maintenance_id == $this->maintenance->id) {
-            // Hapus file fisik
             if (Storage::disk('public')->exists($image->photo_path)) {
                 Storage::disk('public')->delete($image->photo_path);
             }
-            // Hapus record database
             $image->delete();
-            
-            // Reload relasi untuk memperbarui UI
             $this->maintenance->load('images');
         }
     }
 
-    /**
-     * Menghapus foto dari daftar antrian upload sementara (Draft).
-     *
-     * @param int $index Index array foto
-     */
     public function removePhoto($index)
     {
         unset($this->photos[$index]);
         $this->photos = array_values($this->photos); 
     }
 
-    // ==========================================
-    // HELPERS
-    // ==========================================
-
-    /**
-     * Mengompresi gambar dan menyimpannya ke storage publik.
-     * Menggunakan Intervention Image untuk resize dan optimasi JPEG.
-     *
-     * @param \Illuminate\Http\UploadedFile $file File gambar asli
-     * @return string Path relatif file yang disimpan
-     */
     protected function compressAndStore($file)
     {
         $filename = md5($file->getClientOriginalName() . microtime()) . '.jpg';
         $path = 'maintenance-photos/' . $filename;
 
         try {
-            // Inisialisasi Image Manager (Driver GD)
             $manager = new ImageManager(new Driver());
             $image = $manager->read($file->getRealPath());
-            
-            // Resize (Scale Down) ke lebar maksimal 1200px
             $image->scaleDown(width: 1200);
-            
-            // Encode ke JPG kualitas 80%
             $encoded = $image->toJpeg(quality: 80);
-            
-            // Simpan ke disk
             Storage::disk('public')->put($path, $encoded);
-
         } catch (\Exception $e) {
-            // Fallback: Simpan file asli jika kompresi gagal
             $path = $file->storeAs('maintenance-photos', $filename, 'public');
         }
 
