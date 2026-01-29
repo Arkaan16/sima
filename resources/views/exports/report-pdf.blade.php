@@ -105,10 +105,5 @@
             @endforeach
         </tbody>
     </table>
-
-    {{-- Footer --}}
-    <div class="footer">
-        Dicetak pada: {{ now()->format('d-m-Y H:i:s') }}
-    </div>
 </body>
 </html>
