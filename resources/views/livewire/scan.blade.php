@@ -1,7 +1,4 @@
 {{-- 
-    View Livewire: Pemindai QR Code Aset (Employee)
-    Path: resources/views/livewire/employee/scan/scan.blade.php
-    
     Deskripsi:
     Interface pemindai QR code aset dengan Tampilan Lama.
     URL Redirect diperbarui ke /assets/{tag}
