@@ -8,7 +8,7 @@
             <h1 class="text-3xl font-bold text-gray-800">Halo, {{ auth()->user()->name }}!</h1>
             <p class="text-gray-500 text-sm mt-1">
                 {{-- Teks berubah otomatis sesuai role --}}
-                Selamat datang di Dashboard {{ auth()->user()->role === 'admin' ? 'Admin' : 'Teknisi' }}.
+                Selamat datang di Dashboard {{ auth()->user()->role === 'admin' ? 'Admin' : 'Karyawan' }}.
             </p>
         </div>
 
