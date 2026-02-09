@@ -25,16 +25,10 @@ class AuthenticatedSessionController extends Controller
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
-        $request->session()->regenerate();
 
-        // Pastikan user mendapatkan dashboard yang sesuai
-        $user = $request->user();
+        $request->session()->regenerate();
         
-        return match($user->role) {
-            'admin'    => redirect()->intended(route('admin.dashboard')),
-            'employee' => redirect()->intended(route('employee.dashboard')),
-            default    => abort(403, 'Role tidak terdefinisi.'),
-        };
+        return redirect()->intended(route('dashboard'));
     }
 
     /**
