@@ -80,17 +80,15 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::prefix('assets')->name('assets.')->group(function () {
-        
-        // 1. READ ONLY (Admin | Employee)
+    
+        Route::middleware('role:admin')->group(function () {
+            Route::get('/create', AssetForm::class)->name('create'); 
+            Route::get('/{asset}/edit', AssetForm::class)->name('edit');
+        });
+
         Route::middleware('role:admin|employee')->group(function () {
             Route::get('/', AssetIndex::class)->name('index');
             Route::get('/{asset:asset_tag}', AssetShow::class)->name('show');
-        });
-
-        // 2. WRITE/MANAGE (Admin Only)
-        Route::middleware('role:admin')->group(function () {
-            Route::get('/create', AssetForm::class)->name('create');
-            Route::get('/{asset}/edit', AssetForm::class)->name('edit');
         });
     });
 
