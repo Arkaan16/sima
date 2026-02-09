@@ -10,7 +10,7 @@
     class="container mx-auto px-4"
 >
 
-    <h1 class="text-2xl font-bold mb-6 text-gray-800">Kelola Supplier</h1>
+    <h1 class="text-2xl font-bold mb-6 text-gray-800">Kelola Pemasok</h1>
     
     {{-- FLASH MESSAGES --}}
     <div>
