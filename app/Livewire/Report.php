@@ -186,7 +186,7 @@ class Report extends Component
                 'judul' => $maintenance->title,
                 'jenis' => $maintenance->type_label,
                 'Deskripsi Pekerjaan'=> $maintenance->description,
-                'teknisi' => $technicians,
+                'Karyawan' => $technicians,
             ];
         })->toArray();
     }
@@ -266,7 +266,7 @@ class Report extends Component
                 'Harga Pembelian' => $asset->purchase_cost ? 'Rp ' . number_format($asset->purchase_cost, 0, ',', '.') : '-',
                 'Garansi (Bulan)' => $garansiInfo,
                 'Tanggal Habis Masa Pakai (EOL)' => $asset->eol_date ? $asset->eol_date->format('d-m-Y') : '-',
-                'Ditugaskan Kepada' => $assignedName,
+                'Penanggung Jawab Aset' => $assignedName,
             ];
         })->toArray();
     }

@@ -83,7 +83,7 @@ class AssetExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             'Harga Pembelian',
             'Garansi (Bulan)',
             'Tanggal Habis Masa Pakai (EOL)',
-            'Ditugaskan Kepada',
+            'Penanggung Jawab Aset',
         ];
     }
 

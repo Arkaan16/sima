@@ -87,7 +87,7 @@ class MaintenanceExport implements FromCollection, WithHeadings, WithMapping, Sh
             'Judul',
             'Jenis Pemeliharaan',
             'Deskripsi Pekerjaan', // Kolom baru sesuai PDF
-            'Teknisi',
+            'Karyawan',
         ];
     }
 

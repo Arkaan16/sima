@@ -54,7 +54,7 @@ class EmployeeMaintenanceExport implements FromCollection, WithHeadings, WithMap
             'Judul',
             'Jenis Pemeliharaan',
             'Deskripsi Pekerjaan',
-            'Teknisi',
+            'Karyawan',
         ];
     }
 
