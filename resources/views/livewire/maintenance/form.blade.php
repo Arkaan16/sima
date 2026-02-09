@@ -142,7 +142,7 @@
 
                     {{-- TEKNISI --}}
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tim Teknisi Bertugas <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Karyawan Bertugas <span class="text-red-500">*</span></label>
                         <div class="border rounded-xl p-4 max-h-48 overflow-y-auto bg-gray-50 @error('form.selected_technicians') border-red-500 @else border-gray-300 @enderror">
                             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                                 @foreach($technicians as $technician)

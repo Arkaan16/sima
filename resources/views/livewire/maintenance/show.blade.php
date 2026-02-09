@@ -138,7 +138,7 @@
                 {{-- Card Teknisi --}}
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 w-full">
                     <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
-                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Teknisi Bertugas</h3>
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Karyawan Bertugas</h3>
                         <span class="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded-full font-bold">{{ $maintenance->technicians->count() }}</span>
                     </div>
                     
@@ -159,7 +159,7 @@
                         </div>
                     @else
                         <div class="text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                            <p class="text-sm text-gray-400 italic">Belum ada teknisi.</p>
+                            <p class="text-sm text-gray-400 italic">Belum ada Karyawan.</p>
                         </div>
                     @endif
                 </div>
